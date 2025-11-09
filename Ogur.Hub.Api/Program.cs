@@ -121,11 +121,12 @@ app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseSerilogRequestLogging();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ogur Hub API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseCors();
 
