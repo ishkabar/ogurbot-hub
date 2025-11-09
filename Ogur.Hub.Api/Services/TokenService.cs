@@ -35,7 +35,7 @@ public sealed class TokenService : ITokenService
     /// <returns>JWT token string.</returns>
     public string GenerateToken(int userId, string username, bool isAdmin)
     {
-        var secret = _configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
+        var secret = _configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT Secret not configured");
         var issuer = _configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
         var audience = _configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
         var expirationMinutes = int.Parse(_configuration["Jwt:ExpirationMinutes"] ?? "1440");
