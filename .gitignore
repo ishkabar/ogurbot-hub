@@ -121,8 +121,8 @@ $RECYCLE.BIN/
 ## Secrets & Configuration
 appsettings.*.json
 !appsettings.json
-!appsettings.Development.json
-!appsettings.Production.json
+appsettings.Development.json
+appsettings.Production.json
 *.secrets.json
 .env
 .env.*

@@ -143,15 +143,17 @@ jobs:
                   - Jwt__Issuer=OgurHub
                   - Jwt__Audience=OgurHub
                   - Jwt__ExpirationMinutes=1440
+                  - ApiSettings__BaseUrl=http://ogurhub-api:8080
+                  - ApiSettings__SignalRUrl=http://ogurhub-api:8080/hubs/devices
                 networks: [ web ]
                 labels:
                   traefik.enable: "true"
                   traefik.docker.network: "web"
-                  traefik.http.routers.ogurhub-api.rule: "Host(`${API_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-api.rule: "Host(\`\${API_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-api.entrypoints: "websecure"
                   traefik.http.routers.ogurhub-api.tls.certresolver: "le"
                   traefik.http.services.ogurhub-api.loadbalancer.server.port: "8080"
-                  traefik.http.routers.ogurhub-api_http.rule: "Host(`${API_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-api_http.rule: "Host(\`\${API_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-api_http.entrypoints: "web"
                   traefik.http.routers.ogurhub-api_http.middlewares: "forcehttps@docker"
 
@@ -168,11 +170,11 @@ jobs:
                 labels:
                   traefik.enable: "true"
                   traefik.docker.network: "web"
-                  traefik.http.routers.ogurhub-web.rule: "Host(`${WEB_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-web.rule: "Host(\`\${WEB_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-web.entrypoints: "websecure"
                   traefik.http.routers.ogurhub-web.tls.certresolver: "le"
                   traefik.http.services.ogurhub-web.loadbalancer.server.port: "8080"
-                  traefik.http.routers.ogurhub-web_http.rule: "Host(`${WEB_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-web_http.rule: "Host(\`\${WEB_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-web_http.entrypoints: "web"
                   traefik.http.routers.ogurhub-web_http.middlewares: "forcehttps@docker"
 
