@@ -134,6 +134,7 @@ jobs:
                 image: ghcr.io/${GH_OWNER}/ogurhub-api:${TAG:-latest}
                 container_name: ogurhub_api
                 restart: unless-stopped
+                env_file: .env
                 environment:
                   - ASPNETCORE_ENVIRONMENT=Production
                   - ASPNETCORE_URLS=http://+:8080
@@ -158,6 +159,7 @@ jobs:
                 image: ghcr.io/${GH_OWNER}/ogurhub-web:${TAG:-latest}
                 container_name: ogurhub_web
                 restart: unless-stopped
+                env_file: .env
                 environment:
                   - ASPNETCORE_ENVIRONMENT=Production
                   - ASPNETCORE_URLS=http://+:8080
