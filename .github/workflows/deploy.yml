@@ -122,19 +122,18 @@ jobs:
             set -eo pipefail
             GH_OWNER="${GITHUB_OWNER:-ishkabar}"
             TAG_SAFE="sha-${IMAGE_TAG:0:7}"
-            API_DOMAIN="${OGURHUB_API_DOMAIN:-api.ogurhub.ogur.dev}"
+            API_DOMAIN="${OGURHUB_API_DOMAIN:-api.hub.ogur.dev}"
             WEB_DOMAIN="${OGURHUB_WEB_DOMAIN:-hub.ogur.dev}"
-
+            
             docker network ls --format '{{.Name}}' | grep -qx web || docker network create web
             mkdir -p ~/web/ogurhub
-
+            
             cat > ~/web/ogurhub/docker-compose.yml <<'YML'
             services:
               ogurhub-api:
                 image: ghcr.io/${GH_OWNER}/ogurhub-api:${TAG:-latest}
                 container_name: ogurhub_api
                 restart: unless-stopped
-                env_file: .env
                 environment:
                   - ASPNETCORE_ENVIRONMENT=Production
                   - ASPNETCORE_URLS=http://+:8080
@@ -149,40 +148,41 @@ jobs:
                 labels:
                   traefik.enable: "true"
                   traefik.docker.network: "web"
-                  traefik.http.routers.ogurhub-api.rule: "Host(\`\${API_DOMAIN}\`)"
+                  traefik.http.routers.ogurhub-api.rule: "Host(\`${API_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-api.entrypoints: "websecure"
                   traefik.http.routers.ogurhub-api.tls.certresolver: "le"
                   traefik.http.services.ogurhub-api.loadbalancer.server.port: "8080"
-                  traefik.http.routers.ogurhub-api_http.rule: "Host(\`\${API_DOMAIN}\`)"
+                  traefik.http.routers.ogurhub-api_http.rule: "Host(\`${API_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-api_http.entrypoints: "web"
                   traefik.http.routers.ogurhub-api_http.middlewares: "forcehttps@docker"
-
+              
               ogurhub-web:
                 image: ghcr.io/${GH_OWNER}/ogurhub-web:${TAG:-latest}
                 container_name: ogurhub_web
                 restart: unless-stopped
-                env_file: .env
                 environment:
                   - ASPNETCORE_ENVIRONMENT=Production
                   - ASPNETCORE_URLS=http://+:8080
                   - HubApi__BaseUrl=http://ogurhub-api:8080
+                  - ApiSettings__BaseUrl=http://ogurhub-api:8080
+                  - ApiSettings__SignalRUrl=http://ogurhub-api:8080/hubs/devices
                 networks: [ web ]
                 labels:
                   traefik.enable: "true"
                   traefik.docker.network: "web"
-                  traefik.http.routers.ogurhub-web.rule: "Host(\`\${WEB_DOMAIN}\`)"
+                  traefik.http.routers.ogurhub-web.rule: "Host(\`${WEB_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-web.entrypoints: "websecure"
                   traefik.http.routers.ogurhub-web.tls.certresolver: "le"
                   traefik.http.services.ogurhub-web.loadbalancer.server.port: "8080"
-                  traefik.http.routers.ogurhub-web_http.rule: "Host(\`\${WEB_DOMAIN}\`)"
+                  traefik.http.routers.ogurhub-web_http.rule: "Host(\`${WEB_DOMAIN}\`)"
                   traefik.http.routers.ogurhub-web_http.entrypoints: "web"
                   traefik.http.routers.ogurhub-web_http.middlewares: "forcehttps@docker"
-
+            
             networks:
               web:
                 external: true
             YML
-
+            
             cat > ~/web/ogurhub/.env <<EOF
             GH_OWNER=${GH_OWNER}
             TAG=${TAG_SAFE}
@@ -191,7 +191,7 @@ jobs:
             DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
             JWT_SECRET=${JWT_SECRET}
             EOF
-
+            
             echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
             docker compose -f ~/web/ogurhub/docker-compose.yml pull
             docker compose -f ~/web/ogurhub/docker-compose.yml up -d --force-recreate --remove-orphans
