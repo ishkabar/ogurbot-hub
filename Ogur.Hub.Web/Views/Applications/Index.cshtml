@@ -1,0 +1,227 @@
+@{
+    ViewData["Title"] = "Applications";
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Applications Management</h2>
+                    <p class="text-muted">Manage all registered applications</p>
+                </div>
+                <div>
+                    <a asp-action="Create" class="btn btn-primary">
+                        <i class="dx-icon-plus"></i> New Application
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div id="applicationsGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            // Sample data - TODO: Load from API
+            const applications = [
+                {
+                    id: 1,
+                    name: "Ogur.Sentinel",
+                    description: "Discord bot for game respawn timers",
+                    version: "2.1.5",
+                    isActive: true,
+                    createdAt: new Date(2024, 0, 15),
+                    licensesCount: 145,
+                    devicesCount: 87
+                },
+                {
+                    id: 2,
+                    name: "Monitor.App",
+                    description: "System monitoring application",
+                    version: "1.3.2",
+                    isActive: true,
+                    createdAt: new Date(2024, 3, 22),
+                    licensesCount: 67,
+                    devicesCount: 42
+                },
+                {
+                    id: 3,
+                    name: "DataSync.Tool",
+                    description: "Database synchronization utility",
+                    version: "3.0.1",
+                    isActive: false,
+                    createdAt: new Date(2023, 11, 5),
+                    licensesCount: 23,
+                    devicesCount: 8
+                }
+            ];
+
+            $("#applicationsGrid").dxDataGrid({
+                dataSource: applications,
+                showBorders: true,
+                showRowLines: true,
+                rowAlternationEnabled: true,
+                hoverStateEnabled: true,
+                columnAutoWidth: true,
+                filterRow: {
+                    visible: true
+                },
+                headerFilter: {
+                    visible: true
+                },
+                searchPanel: {
+                    visible: true,
+                    width: 240,
+                    placeholder: "Search applications..."
+                },
+                paging: {
+                    pageSize: 15
+                },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [10, 15, 25, 50],
+                    showInfo: true
+                },
+                columns: [
+                    {
+                        dataField: "id",
+                        caption: "ID",
+                        width: 70,
+                        alignment: "center"
+                    },
+                    {
+                        dataField: "name",
+                        caption: "Application Name",
+                        cellTemplate: function(container, options) {
+                            $("<a>")
+                                .attr("href", "/Applications/Details/" + options.data.id)
+                                .addClass("fw-bold text-primary")
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "description",
+                        caption: "Description"
+                    },
+                    {
+                        dataField: "version",
+                        caption: "Version",
+                        width: 100,
+                        alignment: "center"
+                    },
+                    {
+                        dataField: "isActive",
+                        caption: "Status",
+                        width: 100,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const badgeClass = options.value ? "bg-success" : "bg-secondary";
+                            const text = options.value ? "Active" : "Inactive";
+                            $("<span>")
+                                .addClass("badge " + badgeClass)
+                                .text(text)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "licensesCount",
+                        caption: "Licenses",
+                        width: 100,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            $("<span>")
+                                .addClass("badge bg-info")
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "devicesCount",
+                        caption: "Devices",
+                        width: 100,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            $("<span>")
+                                .addClass("badge bg-primary")
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "createdAt",
+                        caption: "Created",
+                        dataType: "date",
+                        format: "dd/MM/yyyy",
+                        width: 120
+                    },
+                    {
+                        type: "buttons",
+                        width: 150,
+                        buttons: [
+                            {
+                                hint: "View Details",
+                                icon: "info",
+                                onClick: function(e) {
+                                    window.location.href = "/Applications/Details/" + e.row.data.id;
+                                }
+                            },
+                            {
+                                hint: "Edit",
+                                icon: "edit",
+                                onClick: function(e) {
+                                    window.location.href = "/Applications/Edit/" + e.row.data.id;
+                                }
+                            },
+                            {
+                                hint: "Delete",
+                                icon: "trash",
+                                onClick: function(e) {
+                                    if (confirm("Are you sure you want to delete this application?")) {
+                                        deleteApplication(e.row.data.id);
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ],
+                onRowDblClick: function(e) {
+                    window.location.href = "/Applications/Details/" + e.data.id;
+                }
+            });
+        });
+
+        function deleteApplication(id) {
+            // Call API endpoint
+            ApiClient.delete(`/applications/${id}`)
+                .then(() => {
+                    Utils.showSuccess("Application deleted successfully!");
+                    location.reload();
+                })
+                .catch(error => {
+                    Utils.showError("Failed to delete application");
+                    console.error(error);
+                });
+        }
+    </script>
+}

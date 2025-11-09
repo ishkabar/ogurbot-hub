@@ -1,0 +1,231 @@
+@{
+    ViewData["Title"] = "Licenses";
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>License Management</h2>
+            <p class="text-muted">Monitor and manage application licenses</p>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>Active Licenses</h6>
+                    <h2 class="mb-0">145</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning">
+                <div class="card-body">
+                    <h6>Expiring Soon</h6>
+                    <h2 class="mb-0">12</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6>Expired</h6>
+                    <h2 class="mb-0">23</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6>Total</h6>
+                    <h2 class="mb-0">180</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div id="licensesGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            const licenses = [
+                {
+                    id: 1,
+                    licenseKey: "OGUR-SENT-2024-ABC123",
+                    applicationName: "Ogur.Sentinel",
+                    deviceId: "DEV-001",
+                    issuedDate: new Date(2024, 0, 15),
+                    expiryDate: new Date(2025, 0, 15),
+                    status: "Active",
+                    usageCount: 1245
+                },
+                {
+                    id: 2,
+                    licenseKey: "OGUR-SENT-2024-DEF456",
+                    applicationName: "Ogur.Sentinel",
+                    deviceId: "DEV-002",
+                    issuedDate: new Date(2024, 2, 10),
+                    expiryDate: new Date(2024, 11, 20),
+                    status: "Expiring",
+                    usageCount: 892
+                },
+                {
+                    id: 3,
+                    licenseKey: "OGUR-MON-2023-GHI789",
+                    applicationName: "Monitor.App",
+                    deviceId: "DEV-003",
+                    issuedDate: new Date(2023, 6, 5),
+                    expiryDate: new Date(2024, 6, 5),
+                    status: "Expired",
+                    usageCount: 2341
+                }
+            ];
+
+            $("#licensesGrid").dxDataGrid({
+                dataSource: licenses,
+                showBorders: true,
+                showRowLines: true,
+                rowAlternationEnabled: true,
+                hoverStateEnabled: true,
+                columnAutoWidth: true,
+                filterRow: {
+                    visible: true
+                },
+                headerFilter: {
+                    visible: true
+                },
+                searchPanel: {
+                    visible: true,
+                    width: 240,
+                    placeholder: "Search licenses..."
+                },
+                paging: {
+                    pageSize: 15
+                },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [10, 15, 25, 50]
+                },
+                export: {
+                    enabled: true,
+                    fileName: "licenses"
+                },
+                columns: [
+                    {
+                        dataField: "licenseKey",
+                        caption: "License Key",
+                        width: 220,
+                        cellTemplate: function(container, options) {
+                            $("<code>").text(options.value).appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "applicationName",
+                        caption: "Application"
+                    },
+                    {
+                        dataField: "deviceId",
+                        caption: "Device ID",
+                        width: 120
+                    },
+                    {
+                        dataField: "issuedDate",
+                        caption: "Issued",
+                        dataType: "date",
+                        format: "dd/MM/yyyy",
+                        width: 110
+                    },
+                    {
+                        dataField: "expiryDate",
+                        caption: "Expires",
+                        dataType: "date",
+                        format: "dd/MM/yyyy",
+                        width: 110
+                    },
+                    {
+                        dataField: "status",
+                        caption: "Status",
+                        width: 110,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            let badgeClass = "bg-secondary";
+                            if (options.value === "Active") badgeClass = "bg-success";
+                            else if (options.value === "Expiring") badgeClass = "bg-warning";
+                            else if (options.value === "Expired") badgeClass = "bg-danger";
+                            
+                            $("<span>")
+                                .addClass("badge " + badgeClass)
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "usageCount",
+                        caption: "Usage",
+                        width: 90,
+                        alignment: "center"
+                    },
+                    {
+                        type: "buttons",
+                        width: 120,
+                        buttons: [
+                            {
+                                hint: "View Details",
+                                icon: "info",
+                                onClick: function(e) {
+                                    window.location.href = "/Licenses/Details/" + e.row.data.id;
+                                }
+                            },
+                            {
+                                hint: "Revoke",
+                                icon: "clear",
+                                visible: function(e) {
+                                    return e.row.data.status === "Active";
+                                },
+                                onClick: function(e) {
+                                    if (confirm("Are you sure you want to revoke this license?")) {
+                                        revokeLicense(e.row.data.id);
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            });
+        });
+
+        function revokeLicense(id) {
+            // Call API endpoint
+            ApiClient.post(`/licenses/${id}/revoke`)
+                .then(() => {
+                    Utils.showSuccess("License revoked successfully!");
+                    location.reload();
+                })
+                .catch(error => {
+                    Utils.showError("Failed to revoke license");
+                    console.error(error);
+                });
+        }
+    </script>
+}

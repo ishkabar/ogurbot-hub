@@ -1,0 +1,367 @@
+@{
+    ViewData["Title"] = "Devices";
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Device Monitoring</h2>
+                    <p class="text-muted">Real-time device connection monitoring</p>
+                </div>
+                <div>
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <i class="dx-icon-refresh"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Connection Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted">Online</h6>
+                            <h2 class="text-success mb-0" id="onlineCount">0</h2>
+                        </div>
+                        <div class="text-success" style="font-size: 2rem;">●</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-secondary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted">Offline</h6>
+                            <h2 class="text-secondary mb-0" id="offlineCount">0</h2>
+                        </div>
+                        <div class="text-secondary" style="font-size: 2rem;">●</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted">Warning</h6>
+                            <h2 class="text-warning mb-0" id="warningCount">0</h2>
+                        </div>
+                        <div class="text-warning" style="font-size: 2rem;">⚠</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted">Total</h6>
+                            <h2 class="text-info mb-0" id="totalCount">0</h2>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">📱</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div id="devicesGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            const devices = [
+                {
+                    id: 1,
+                    deviceId: "DEV-001",
+                    applicationName: "Ogur.Sentinel",
+                    ipAddress: "192.168.1.100",
+                    hostname: "GAMING-PC-01",
+                    status: "Online",
+                    lastSeen: new Date(Date.now() - 120000),
+                    connectedAt: new Date(Date.now() - 7200000),
+                    cpuUsage: 45,
+                    memoryUsage: 62,
+                    uptime: "2h 15m"
+                },
+                {
+                    id: 2,
+                    deviceId: "DEV-002",
+                    applicationName: "Ogur.Sentinel",
+                    ipAddress: "192.168.1.101",
+                    hostname: "LAPTOP-USER",
+                    status: "Online",
+                    lastSeen: new Date(Date.now() - 30000),
+                    connectedAt: new Date(Date.now() - 3600000),
+                    cpuUsage: 23,
+                    memoryUsage: 38,
+                    uptime: "1h 05m"
+                },
+                {
+                    id: 3,
+                    deviceId: "DEV-003",
+                    applicationName: "Monitor.App",
+                    ipAddress: "192.168.1.102",
+                    hostname: "SERVER-01",
+                    status: "Warning",
+                    lastSeen: new Date(Date.now() - 600000),
+                    connectedAt: new Date(Date.now() - 86400000),
+                    cpuUsage: 89,
+                    memoryUsage: 94,
+                    uptime: "24h 12m"
+                },
+                {
+                    id: 4,
+                    deviceId: "DEV-004",
+                    applicationName: "Ogur.Sentinel",
+                    ipAddress: "192.168.1.103",
+                    hostname: "WORKSTATION",
+                    status: "Offline",
+                    lastSeen: new Date(Date.now() - 86400000),
+                    connectedAt: new Date(Date.now() - 172800000),
+                    cpuUsage: 0,
+                    memoryUsage: 0,
+                    uptime: "0m"
+                }
+            ];
+
+            updateStats(devices);
+
+            const grid = $("#devicesGrid").dxDataGrid({
+                dataSource: devices,
+                showBorders: true,
+                showRowLines: true,
+                rowAlternationEnabled: true,
+                hoverStateEnabled: true,
+                columnAutoWidth: true,
+                filterRow: {
+                    visible: true
+                },
+                headerFilter: {
+                    visible: true
+                },
+                searchPanel: {
+                    visible: true,
+                    width: 240,
+                    placeholder: "Search devices..."
+                },
+                paging: {
+                    pageSize: 15
+                },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [10, 15, 25, 50]
+                },
+                columns: [
+                    {
+                        dataField: "deviceId",
+                        caption: "Device ID",
+                        width: 130,
+                        cellTemplate: function(container, options) {
+                            $("<a>")
+                                .attr("href", "/Devices/Details/" + options.data.id)
+                                .addClass("fw-bold text-primary")
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "applicationName",
+                        caption: "Application",
+                        width: 150
+                    },
+                    {
+                        dataField: "hostname",
+                        caption: "Hostname"
+                    },
+                    {
+                        dataField: "ipAddress",
+                        caption: "IP Address",
+                        width: 130
+                    },
+                    {
+                        dataField: "status",
+                        caption: "Status",
+                        width: 100,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            let badgeClass = "bg-secondary";
+                            let icon = "●";
+                            if (options.value === "Online") {
+                                badgeClass = "bg-success";
+                                icon = "● Online";
+                            } else if (options.value === "Warning") {
+                                badgeClass = "bg-warning";
+                                icon = "⚠ Warning";
+                            } else if (options.value === "Offline") {
+                                badgeClass = "bg-secondary";
+                                icon = "● Offline";
+                            }
+                            
+                            $("<span>")
+                                .addClass("badge " + badgeClass)
+                                .text(icon)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "cpuUsage",
+                        caption: "CPU %",
+                        width: 80,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            let color = "success";
+                            if (options.value > 80) color = "danger";
+                            else if (options.value > 60) color = "warning";
+                            
+                            $("<span>")
+                                .addClass("text-" + color + " fw-bold")
+                                .text(options.value + "%")
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "memoryUsage",
+                        caption: "RAM %",
+                        width: 80,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            let color = "success";
+                            if (options.value > 80) color = "danger";
+                            else if (options.value > 60) color = "warning";
+                            
+                            $("<span>")
+                                .addClass("text-" + color + " fw-bold")
+                                .text(options.value + "%")
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "uptime",
+                        caption: "Uptime",
+                        width: 100
+                    },
+                    {
+                        dataField: "lastSeen",
+                        caption: "Last Seen",
+                        dataType: "datetime",
+                        format: "dd/MM/yyyy HH:mm",
+                        width: 150
+                    },
+                    {
+                        type: "buttons",
+                        width: 120,
+                        buttons: [
+                            {
+                                hint: "View Details",
+                                icon: "info",
+                                onClick: function(e) {
+                                    window.location.href = "/Devices/Details/" + e.row.data.id;
+                                }
+                            },
+                            {
+                                hint: "Send Command",
+                                icon: "message",
+                                visible: function(e) {
+                                    return e.row.data.status === "Online";
+                                },
+                                onClick: function(e) {
+                                    sendCommandDialog(e.row.data.id);
+                                }
+                            },
+                            {
+                                hint: "Disconnect",
+                                icon: "clear",
+                                visible: function(e) {
+                                    return e.row.data.status === "Online";
+                                },
+                                onClick: function(e) {
+                                    if (confirm("Disconnect this device?")) {
+                                        disconnectDevice(e.row.data.id);
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }).dxDataGrid("instance");
+
+            $("#refreshBtn").click(function() {
+                grid.refresh();
+                Utils.showSuccess("Data refreshed!");
+            });
+
+            // Auto-refresh every 30 seconds
+            setInterval(function() {
+                grid.refresh();
+            }, 30000);
+        });
+
+        function updateStats(devices) {
+            const online = devices.filter(d => d.status === "Online").length;
+            const offline = devices.filter(d => d.status === "Offline").length;
+            const warning = devices.filter(d => d.status === "Warning").length;
+            
+            $("#onlineCount").text(online);
+            $("#offlineCount").text(offline);
+            $("#warningCount").text(warning);
+            $("#totalCount").text(devices.length);
+        }
+
+        function sendCommandDialog(deviceId) {
+            const command = prompt("Enter command to send:");
+            if (command) {
+                // Call API endpoint
+                ApiClient.post(`/devices/${deviceId}/commands`, { command: command })
+                    .then(() => {
+                        Utils.showSuccess("Command sent successfully!");
+                    })
+                    .catch(error => {
+                        Utils.showError("Failed to send command");
+                        console.error(error);
+                    });
+            }
+        }
+
+        function disconnectDevice(id) {
+            // Call API endpoint
+            ApiClient.post(`/devices/${id}/disconnect`)
+                .then(() => {
+                    Utils.showSuccess("Device disconnected successfully!");
+                    location.reload();
+                })
+                .catch(error => {
+                    Utils.showError("Failed to disconnect device");
+                    console.error(error);
+                });
+        }
+    </script>
+}

@@ -1,0 +1,422 @@
+@model Ogur.Hub.Web.Models.LoginViewModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In - Ogur.Hub Admin Panel</title>
+
+    <!-- Theme loader script BEFORE any CSS -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+    <style>
+        :root {
+            --login-bg: #f8f9fa;
+            --login-card-bg: #ffffff;
+            --login-text: #212529;
+            --login-border: #dee2e6;
+            --login-primary: #0d6efd;
+            --login-primary-hover: #0b5ed7;
+        }
+
+        [data-bs-theme="dark"] {
+            --login-bg: #1a1a1a;
+            --login-card-bg: #2d2d2d;
+            --login-text: #e0e0e0;
+            --login-border: #404040;
+            --login-primary: #0d6efd;
+            --login-primary-hover: #0b5ed7;
+        }
+
+        body {
+            background-color: var(--login-bg);
+            color: var(--login-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .auth-container {
+            background-color: var(--login-card-bg);
+            border: 1px solid var(--login-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 420px;
+            width: 100%;
+            padding: 0;
+            overflow: hidden;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        [data-bs-theme="dark"] .auth-container {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .auth-header {
+            padding: 40px 30px 30px;
+            text-align: center;
+            border-bottom: 1px solid var(--login-border);
+        }
+
+        .brand-logo {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .auth-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            color: var(--login-text);
+        }
+
+        .auth-header p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+
+        [data-bs-theme="dark"] .auth-header p {
+            color: #adb5bd;
+        }
+
+        .auth-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--login-text);
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid var(--login-border);
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            background-color: var(--login-card-bg);
+            color: var(--login-text);
+        }
+
+        [data-bs-theme="dark"] .form-control {
+            background-color: #343a40;
+            border-color: #495057;
+            color: #dee2e6;
+        }
+
+        .form-control:focus {
+            border-color: var(--login-primary);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+            background-color: var(--login-card-bg);
+        }
+
+        [data-bs-theme="dark"] .form-control:focus {
+            background-color: #495057;
+            border-color: var(--login-primary);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6c757d;
+            font-size: 1.1rem;
+            padding: 5px;
+        }
+
+        .password-toggle:hover {
+            color: var(--login-text);
+        }
+
+        .form-check {
+            margin-bottom: 20px;
+        }
+
+        .form-check-label {
+            color: var(--login-text);
+            font-size: 0.9rem;
+        }
+
+        .btn-primary-custom {
+            background-color: var(--login-primary);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            color: white;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .btn-primary-custom:hover {
+            background-color: var(--login-primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        .auth-footer {
+            text-align: center;
+            padding: 20px 30px;
+            border-top: 1px solid var(--login-border);
+            background-color: var(--login-bg);
+        }
+
+        .auth-footer a {
+            color: var(--login-primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .text-danger {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .alert {
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--login-card-bg);
+            border: 1px solid var(--login-border);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.3rem;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.1);
+        }
+
+        [data-bs-theme="dark"] .theme-toggle-btn {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+<!-- Theme Toggle Button -->
+<button type="button" id="themeToggle" class="theme-toggle-btn" title="Toggle theme">
+    <span id="themeIcon">⚫</span>
+</button>
+
+<div class="auth-container">
+    <div class="auth-header">
+        <span class="brand-logo">🥒</span>
+        <h1>Ogur.Hub</h1>
+        <p>Admin Panel - Sign In</p>
+    </div>
+
+    <div class="auth-body">
+        @if (TempData["ErrorMessage"] != null)
+        {
+        <div class="alert alert-danger" role="alert">
+            @TempData["ErrorMessage"]
+        </div>
+        }
+
+        @if (TempData["InfoMessage"] != null)
+        {
+        <div class="alert alert-info" role="alert">
+            @TempData["InfoMessage"]
+        </div>
+        }
+
+        <form method="post" action="/Account/Login">
+            @Html.AntiForgeryToken()
+
+            <div class="form-group">
+                <label for="Username" class="form-label">Username</label>
+                <input asp-for="Username"
+                       id="Username"
+                       class="form-control"
+                       placeholder="Enter your username"
+                       autocomplete="username"
+                       autofocus
+                       required />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="Password" class="form-label">Password</label>
+                <div class="password-wrapper">
+                    <input asp-for="Password" 
+                           id="Password"
+                           class="form-control" 
+                           type="password"
+                           placeholder="Enter your password"
+                           autocomplete="current-password"
+                           required />
+                    <button type="button" class="password-toggle">
+                        <span id="eyeIcon">👁️</span>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-check">
+                <input asp-for="RememberMe" class="form-check-input" type="checkbox" id="RememberMe" />
+                <label class="form-check-label" for="RememberMe">
+                    Remember me
+                </label>
+            </div>
+
+            <button type="submit" class="btn-primary-custom">Sign In</button>
+
+            @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+            {
+            <div class="alert alert-danger">
+                @ViewBag.ErrorMessage
+            </div>
+            }
+        </form>
+    </div>
+
+    <div class="auth-footer">
+        <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 0.85rem;">
+            Need access? <a href="mailto:kontakt@Ogur.dev?subject=Access Request - Ogur Hub">Request access</a>
+        </p>
+        <p style="margin: 0; color: #adb5bd; font-size: 0.8rem;">
+            Admin access only
+        </p>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@4.0.0/dist/jquery.validate.unobtrusive.min.js"></script>
+
+<script>
+    // Password peek - hold to reveal
+    const passwordInput = document.getElementById('Password');
+    const passwordToggle = document.querySelector('.password-toggle');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    let isRevealing = false;
+
+    // Mouse events
+    passwordToggle.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        revealPassword();
+    });
+
+    passwordToggle.addEventListener('mouseup', hidePassword);
+    passwordToggle.addEventListener('mouseleave', hidePassword);
+
+    // Touch events for mobile
+    passwordToggle.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        revealPassword();
+    });
+
+    passwordToggle.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        hidePassword();
+    });
+
+    passwordToggle.addEventListener('touchcancel', hidePassword);
+
+    function revealPassword() {
+        if (!isRevealing) {
+            passwordInput.type = 'text';
+            eyeIcon.textContent = '👁️';
+            eyeIcon.style.opacity = '1';
+            isRevealing = true;
+        }
+    }
+
+    function hidePassword() {
+        if (isRevealing) {
+            passwordInput.type = 'password';
+            eyeIcon.textContent = '👁️';
+            eyeIcon.style.opacity = '0.5';
+            isRevealing = false;
+        }
+    }
+
+    // Initial state
+    eyeIcon.style.opacity = '0.5';
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+
+    let currentTheme = localStorage.getItem('theme') || 'light';
+    updateThemeIcon(currentTheme);
+
+    themeToggle.addEventListener('click', function() {
+        currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-bs-theme', currentTheme);
+
+        if (currentTheme === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        } else {
+            document.documentElement.classList.remove('dark-mode');
+        }
+
+        localStorage.setItem('theme', currentTheme);
+        updateThemeIcon(currentTheme);
+    });
+
+    function updateThemeIcon(theme) {
+        themeIcon.textContent = theme === 'dark' ? '⚪️' : '⚫';
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+# File: docker-compose.yml
+# Project: Root
+
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:11.2
+    container_name: ogurhub-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: OgurHub2024!SecurePassword
+      MYSQL_DATABASE: ogurhub
+      MYSQL_USER: ogurhub
+      MYSQL_PASSWORD: OgurHub2024!UserPassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - ogurhub-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  hub-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ogurhub-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__DefaultConnection: "Server=mariadb;Port=3306;Database=ogurhub;User=ogurhub;Password=OgurHub2024!UserPassword;AllowUserVariables=true;UseAffectedRows=false;"
+      Jwt__Secret: "your-super-secret-key-must-be-at-least-32-characters-long-for-hs256-production"
+      Jwt__Issuer: "OgurHub"
+      Jwt__Audience: "OgurHub"
+      Jwt__ExpirationMinutes: "1440"
+    ports:
+      - "5000:80"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - ogurhub-network
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  ogurhub-network:
+    driver: bridge

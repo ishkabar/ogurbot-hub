@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Ogur.Hub Admin Panel</title>
+
+    <!-- CRITICAL: Load theme BEFORE any CSS to prevent flash -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            const dxThemeUrl = theme === 'dark'
+                ? 'https://cdn3.devexpress.com/jslib/23.2.3/css/dx.dark.css'
+                : 'https://cdn3.devexpress.com/jslib/23.2.3/css/dx.light.css';
+
+            // Set Bootstrap theme
+            document.documentElement.setAttribute('data-bs-theme', theme);
+
+            // Set body class
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+
+            // Write DevExpress theme link immediately
+            document.write('<link id="dx-theme" href="' + dxThemeUrl + '" rel="stylesheet" />');
+        })();
+    </script>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+@Html.AntiForgeryToken()
+
+<!-- Header -->
+<header class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+            <span class="brand-logo">🐺</span>
+            <span class="brand-text">Ogur.Hub</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Home" asp-action="Index">
+                        <i class="dx-icon-home"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Applications" asp-action="Index">
+                        <i class="dx-icon-box"></i> Applications
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Licenses" asp-action="Index">
+                        <i class="dx-icon-key"></i> Licenses
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Devices" asp-action="Index">
+                        <i class="dx-icon-runner"></i> Devices
+                    </a>
+                </li>
+            </ul>
+
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <button id="themeToggle" class="btn btn-link nav-link" title="Toggle theme">
+                        <i class="dx-icon-palette" id="themeIcon"></i>
+                        <span id="themeText">Dark</span>
+                    </button>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userMenu" data-bs-toggle="dropdown">
+                        <i class="dx-icon-user"></i> Admin
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="dx-icon-preferences"></i> Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form asp-controller="Account" asp-action="Logout" method="post" style="display: inline;">
+                                <button type="submit" class="dropdown-item">
+                                    <i class="dx-icon-export"></i> Logout
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content -->
+<div class="container-fluid">
+    <div class="row">
+        <!-- Left Sidebar (Optional) -->
+        @if (IsSectionDefined("LeftPanel"))
+        {
+        <div class="col-lg-2 col-md-3 d-none d-md-block bg-light sidebar">
+            @RenderSection("LeftPanel", required: false)
+        </div>
+        }
+
+        <!-- Page Content -->
+        <main class="@(IsSectionDefined("LeftPanel") ? "col-lg-10 col-md-9" : "col-12") px-4 py-3">
+            <!-- Page Toolbar -->
+            @if (IsSectionDefined("PageToolbar"))
+            {
+            <div class="page-toolbar mb-3">
+                @RenderSection("PageToolbar", required: false)
+            </div>
+            }
+
+            <!-- Main Content -->
+            @RenderBody()
+        </main>
+
+        <!-- Right Sidebar (Optional) -->
+        @if (IsSectionDefined("RightPanel"))
+        {
+        <div class="col-lg-2 col-md-3 d-none d-lg-block bg-light sidebar">
+            @RenderSection("RightPanel", required: false)
+        </div>
+        }
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- DevExpress JS -->
+<script src="https://cdn3.devexpress.com/jslib/23.2.3/js/dx.all.js"></script>
+
+<!-- Custom JS -->
+<script src="~/js/site.js" asp-append-version="true"></script>
+
+<!-- Theme Toggle Script -->
+<script>
+    // Theme management
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+    const dxTheme = document.getElementById('dx-theme');
+
+    // Load saved theme
+    let currentTheme = localStorage.getItem('theme') || 'light';
+    updateThemeButton(currentTheme);
+
+    themeToggle.addEventListener('click', function() {
+        currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+        applyTheme(currentTheme);
+        localStorage.setItem('theme', currentTheme);
+    });
+
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            dxTheme.href = 'https://cdn3.devexpress.com/jslib/23.2.3/css/dx.dark.css';
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            document.documentElement.classList.add('dark-mode');
+        } else {
+            dxTheme.href = 'https://cdn3.devexpress.com/jslib/23.2.3/css/dx.light.css';
+            document.documentElement.setAttribute('data-bs-theme', 'light');
+            document.documentElement.classList.remove('dark-mode');
+        }
+        updateThemeButton(theme);
+    }
+
+    function updateThemeButton(theme) {
+        themeText.textContent = theme === 'dark' ? 'Light' : 'Dark';
+    }
+</script>
+
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
