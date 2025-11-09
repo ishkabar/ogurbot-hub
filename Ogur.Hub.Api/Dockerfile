@@ -1,28 +1,39 @@
-﻿# File: Dockerfile
-# Project: Root
+﻿# File: Ogur.Hub.Api/Dockerfile
+# Project: Ogur.Hub.Api
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 80
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG VERSION=1.0.0-dev
 WORKDIR /src
 
-COPY ["src/Ogur.Hub.Api/Ogur.Hub.Api.csproj", "src/Ogur.Hub.Api/"]
-COPY ["src/Ogur.Hub.Infrastructure/Ogur.Hub.Infrastructure.csproj", "src/Ogur.Hub.Infrastructure/"]
-COPY ["src/Ogur.Hub.Application/Ogur.Hub.Application.csproj", "src/Ogur.Hub.Application/"]
-COPY ["src/Ogur.Hub.Domain/Ogur.Hub.Domain.csproj", "src/Ogur.Hub.Domain/"]
+# Copy project files
+COPY ["Ogur.Hub.Api/Ogur.Hub.Api.csproj", "Ogur.Hub.Api/"]
+COPY ["Ogur.Hub.Application/Ogur.Hub.Application.csproj", "Ogur.Hub.Application/"]
+COPY ["Ogur.Hub.Domain/Ogur.Hub.Domain.csproj", "Ogur.Hub.Domain/"]
+COPY ["Ogur.Hub.Infrastructure/Ogur.Hub.Infrastructure.csproj", "Ogur.Hub.Infrastructure/"]
 
-RUN dotnet restore "src/Ogur.Hub.Api/Ogur.Hub.Api.csproj"
+# Restore dependencies
+RUN dotnet restore "Ogur.Hub.Api/Ogur.Hub.Api.csproj"
 
+# Copy everything else
 COPY . .
-WORKDIR "/src/src/Ogur.Hub.Api"
-RUN dotnet build "Ogur.Hub.Api.csproj" -c Release -o /app/build
 
-FROM build AS publish
-RUN dotnet publish "Ogur.Hub.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Build and publish
+RUN dotnet publish "Ogur.Hub.Api/Ogur.Hub.Api.csproj" \
+    -c Release \
+    -o /app/publish \
+    -p:Version=${VERSION} \
+    --no-restore
 
 FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
+
+ENV APP_VERSION=${VERSION}
+LABEL version="${VERSION}"
+
 ENTRYPOINT ["dotnet", "Ogur.Hub.Api.dll"]

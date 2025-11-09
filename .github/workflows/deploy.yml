@@ -1,0 +1,194 @@
+# File: .github/workflows/deploy.yml
+# Project: Ogur.Hub
+
+name: Build & Deploy Ogur.Hub
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ogurhub-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_API: ghcr.io/${{ github.repository_owner }}/ogurhub-api
+  IMAGE_WEB: ghcr.io/${{ github.repository_owner }}/ogurhub-web
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all tags
+        run: |
+          git fetch --tags --force
+          git tag --list
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Get version
+        id: version
+        run: |
+          dotnet tool install --global minver-cli
+          VERSION=$(minver -t v -m 1.0 -d preview)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Using version: $VERSION"
+
+      - name: Meta
+        id: meta
+        run: |
+          echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "DATE_TAG=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Build & Push API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Ogur.Hub.Api/Dockerfile
+          push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
+          tags: |
+            ${{ env.IMAGE_API }}:latest
+            ${{ env.IMAGE_API }}:${{ steps.version.outputs.VERSION }}
+            ${{ env.IMAGE_API }}:sha-${{ steps.meta.outputs.SHA_SHORT }}
+            ${{ env.IMAGE_API }}:${{ steps.meta.outputs.DATE_TAG }}
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Build & Push Web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Ogur.Hub.Web/Dockerfile
+          push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
+            DEVEXPRESS_KEY=${{ secrets.DEVEXPRESS_KEY }}
+          tags: |
+            ${{ env.IMAGE_WEB }}:latest
+            ${{ env.IMAGE_WEB }}:${{ steps.version.outputs.VERSION }}
+            ${{ env.IMAGE_WEB }}:sha-${{ steps.meta.outputs.SHA_SHORT }}
+            ${{ env.IMAGE_WEB }}:${{ steps.meta.outputs.DATE_TAG }}
+          platforms: linux/amd64
+          provenance: false
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy on VPS
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          IMAGE_TAG: ${{ github.sha }}
+          OGURHUB_API_DOMAIN: ${{ secrets.OGURHUB_API_DOMAIN }}
+          OGURHUB_WEB_DOMAIN: ${{ secrets.OGURHUB_WEB_DOMAIN }}
+          DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: GITHUB_ACTOR,GITHUB_TOKEN,GITHUB_OWNER,IMAGE_TAG,OGURHUB_API_DOMAIN,OGURHUB_WEB_DOMAIN,DB_CONNECTION_STRING,JWT_SECRET
+          script: |
+            set -eo pipefail
+            GH_OWNER="${GITHUB_OWNER:-ishkabar}"
+            TAG_SAFE="sha-${IMAGE_TAG:0:7}"
+            API_DOMAIN="${OGURHUB_API_DOMAIN:-api.ogurhub.ogur.dev}"
+            WEB_DOMAIN="${OGURHUB_WEB_DOMAIN:-hub.ogur.dev}"
+
+            docker network ls --format '{{.Name}}' | grep -qx web || docker network create web
+            mkdir -p ~/web/ogurhub
+
+            cat > ~/web/ogurhub/docker-compose.yml <<'YML'
+            services:
+              ogurhub-api:
+                image: ghcr.io/${GH_OWNER}/ogurhub-api:${TAG:-latest}
+                container_name: ogurhub_api
+                restart: unless-stopped
+                environment:
+                  - ASPNETCORE_ENVIRONMENT=Production
+                  - ASPNETCORE_URLS=http://+:8080
+                  - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+                  - Jwt__SecretKey=${JWT_SECRET}
+                  - Jwt__Issuer=OgurHub
+                  - Jwt__Audience=OgurHub
+                  - Jwt__ExpirationMinutes=1440
+                networks: [ web ]
+                labels:
+                  traefik.enable: "true"
+                  traefik.docker.network: "web"
+                  traefik.http.routers.ogurhub-api.rule: "Host(`${API_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-api.entrypoints: "websecure"
+                  traefik.http.routers.ogurhub-api.tls.certresolver: "le"
+                  traefik.http.services.ogurhub-api.loadbalancer.server.port: "8080"
+                  traefik.http.routers.ogurhub-api_http.rule: "Host(`${API_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-api_http.entrypoints: "web"
+                  traefik.http.routers.ogurhub-api_http.middlewares: "forcehttps@docker"
+
+              ogurhub-web:
+                image: ghcr.io/${GH_OWNER}/ogurhub-web:${TAG:-latest}
+                container_name: ogurhub_web
+                restart: unless-stopped
+                environment:
+                  - ASPNETCORE_ENVIRONMENT=Production
+                  - ASPNETCORE_URLS=http://+:8080
+                  - HubApi__BaseUrl=http://ogurhub-api:8080
+                networks: [ web ]
+                labels:
+                  traefik.enable: "true"
+                  traefik.docker.network: "web"
+                  traefik.http.routers.ogurhub-web.rule: "Host(`${WEB_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-web.entrypoints: "websecure"
+                  traefik.http.routers.ogurhub-web.tls.certresolver: "le"
+                  traefik.http.services.ogurhub-web.loadbalancer.server.port: "8080"
+                  traefik.http.routers.ogurhub-web_http.rule: "Host(`${WEB_DOMAIN}`)"
+                  traefik.http.routers.ogurhub-web_http.entrypoints: "web"
+                  traefik.http.routers.ogurhub-web_http.middlewares: "forcehttps@docker"
+
+            networks:
+              web:
+                external: true
+            YML
+
+            cat > ~/web/ogurhub/.env <<EOF
+            GH_OWNER=${GH_OWNER}
+            TAG=${TAG_SAFE}
+            API_DOMAIN=${API_DOMAIN}
+            WEB_DOMAIN=${WEB_DOMAIN}
+            DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+            JWT_SECRET=${JWT_SECRET}
+            EOF
+
+            echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+            docker compose -f ~/web/ogurhub/docker-compose.yml pull
+            docker compose -f ~/web/ogurhub/docker-compose.yml up -d --force-recreate --remove-orphans
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
