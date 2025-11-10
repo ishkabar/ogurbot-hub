@@ -93,6 +93,12 @@ public class VpsMonitorService : IVpsMonitorService
     /// <inheritdoc/>
     public async Task<VpsWebsiteDto> AddWebsiteAsync(AddWebsiteDto dto, CancellationToken cancellationToken = default)
     {
+        var existing = await _vpsRepository.GetWebsiteByDomainAsync(dto.Domain.Trim().ToLowerInvariant(), cancellationToken);
+        if (existing != null)
+        {
+            throw new InvalidOperationException($"Website with domain {dto.Domain} already exists");
+        }
+        
         var website = new VpsWebsite
         {
             Domain = dto.Domain.Trim().ToLowerInvariant(),

@@ -39,7 +39,8 @@ public class DockerMonitorService : IDockerMonitorService
 
             foreach (var dockerContainer in containers)
             {
-                var existingContainer = await _vpsRepository.GetContainerByDockerIdAsync(dockerContainer.Id, cancellationToken);
+                var existingContainer =
+                    await _vpsRepository.GetContainerByDockerIdAsync(dockerContainer.Id, cancellationToken);
 
                 if (existingContainer != null)
                 {
@@ -68,6 +69,15 @@ public class DockerMonitorService : IDockerMonitorService
 
                     await _vpsRepository.AddContainerAsync(newContainer, cancellationToken);
                 }
+            }
+
+            var currentContainerIds = containers.Select(c => c.Id).ToHashSet();
+            var oldContainers = await _vpsRepository.GetAllContainersAsync(cancellationToken);
+
+            var containersToDelete = oldContainers.Where(c => !currentContainerIds.Contains(c.ContainerId)).ToList();
+            foreach (var old in containersToDelete)
+            {
+                await _vpsRepository.DeleteContainerAsync(old, cancellationToken);
             }
         }
         catch (Exception ex)

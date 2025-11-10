@@ -101,4 +101,16 @@ public class VpsRepository : IVpsRepository
         await _context.VpsResourceSnapshots.AddAsync(snapshot, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
     }
+    
+    public async Task<VpsWebsite?> GetWebsiteByDomainAsync(string domain, CancellationToken cancellationToken = default)
+    {
+        return await _context.VpsWebsites
+            .FirstOrDefaultAsync(w => w.Domain == domain, cancellationToken);
+    }
+    
+    public async Task DeleteContainerAsync(VpsContainer container, CancellationToken cancellationToken = default)
+    {
+        _context.VpsContainers.Remove(container);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

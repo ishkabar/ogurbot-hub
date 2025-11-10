@@ -545,17 +545,21 @@
                     DevExpress.ui.notify("Website added successfully!", "success", 2000);
                     addWebsitePopup.hide();
 
-                    $.get(vpsData.apiBaseUrl + '/api/vps/websites', {
+                    $.ajax({
+                        url: vpsData.apiBaseUrl + '/api/vps/websites',
+                        method: 'GET',
                         headers: {
                             'Authorization': 'Bearer ' + '@ViewBag.JwtToken'
+                        },
+                        success: function (websites) {
+                            websitesGrid.option("dataSource", websites);
+                            $("#websitesCount").text(websites.length);
                         }
-                    }, function (websites) {
-                        websitesGrid.option("dataSource", websites);
-                        $("#websitesCount").text(websites.length);
                     });
                 },
-                error: function () {
-                    DevExpress.ui.notify("Failed to add website", "error", 2000);
+                error: function (xhr) {
+                    var message = xhr.responseJSON?.message || "Failed to add website";
+                    DevExpress.ui.notify(message, "error", 3000);
                 }
             });
         }

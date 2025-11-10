@@ -95,4 +95,8 @@ public interface IVpsRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Task representing the operation.</returns>
     Task AddSnapshotAsync(VpsResourceSnapshot snapshot, CancellationToken cancellationToken = default);
+    
+    Task<VpsWebsite?> GetWebsiteByDomainAsync(string domain, CancellationToken cancellationToken = default);
+    Task DeleteContainerAsync(VpsContainer container, CancellationToken cancellationToken = default);
+
 }
