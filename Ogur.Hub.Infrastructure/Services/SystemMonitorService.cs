@@ -64,7 +64,7 @@ public class SystemMonitorService : ISystemMonitorService
             var vpsRepository = scope.ServiceProvider.GetRequiredService<IVpsRepository>();
             await vpsRepository.AddSnapshotAsync(snapshot, cancellationToken);
 
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",
                 cpuUsage, memoryInfo.Used / 1024m / 1024m / 1024m, memoryInfo.Total / 1024m / 1024m / 1024m,
                 diskInfo.Used / 1024m / 1024m / 1024m, diskInfo.Total / 1024m / 1024m / 1024m,
@@ -264,12 +264,9 @@ public class SystemMonitorService : ISystemMonitorService
 
     private async Task<NetworkInfo> GetNetworkInfoAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("=== NETWORK MONITORING START ===");
-
         try
         {
             var netDevPath = "/host/proc/net/dev";
-            _logger.LogInformation("Checking network file: {Path}", netDevPath);
 
             if (!File.Exists(netDevPath))
             {
@@ -278,7 +275,6 @@ public class SystemMonitorService : ISystemMonitorService
             }
 
             var lines = await File.ReadAllLinesAsync(netDevPath, cancellationToken);
-            _logger.LogInformation("Read {Count} lines from {Path}", lines.Length, netDevPath);
 
             long totalRxBytes = 0;
             long totalTxBytes = 0;
@@ -293,16 +289,13 @@ public class SystemMonitorService : ISystemMonitorService
                 }
 
                 var interfaceName = parts[0].Trim();
-                _logger.LogInformation("Processing interface: {Interface}", interfaceName);
 
                 if (interfaceName == "lo")
                 {
-                    _logger.LogInformation("Skipping loopback interface");
                     continue;
                 }
 
                 var stats = parts[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                _logger.LogInformation("Interface {Interface} has {Count} stat fields", interfaceName, stats.Length);
 
                 if (stats.Length < 9)
                 {
@@ -313,7 +306,6 @@ public class SystemMonitorService : ISystemMonitorService
 
                 if (long.TryParse(stats[0], out var rxBytes))
                 {
-                    _logger.LogInformation("Interface {Interface} RX: {Rx} bytes", interfaceName, rxBytes);
                     totalRxBytes += rxBytes;
                 }
                 else
@@ -323,7 +315,6 @@ public class SystemMonitorService : ISystemMonitorService
 
                 if (long.TryParse(stats[8], out var txBytes))
                 {
-                    _logger.LogInformation("Interface {Interface} TX: {Tx} bytes", interfaceName, txBytes);
                     totalTxBytes += txBytes;
                 }
                 else
@@ -332,7 +323,6 @@ public class SystemMonitorService : ISystemMonitorService
                 }
             }
 
-            _logger.LogInformation("TOTAL NETWORK - RX: {Rx} bytes, TX: {Tx} bytes", totalRxBytes, totalTxBytes);
 
             var currentStats = new NetworkStats
             {
@@ -341,22 +331,16 @@ public class SystemMonitorService : ISystemMonitorService
             };
 
             var currentTime = DateTime.UtcNow;
-            _logger.LogInformation("Current time: {Time}", currentTime);
 
             if (_previousNetworkStats == null || _previousNetworkTime == null)
             {
-                _logger.LogInformation("FIRST CAPTURE - Storing baseline. Previous stats is NULL");
                 _previousNetworkStats = currentStats;
                 _previousNetworkTime = currentTime;
                 return new NetworkInfo();
             }
 
-            _logger.LogInformation("Previous capture time: {Time}", _previousNetworkTime.Value);
-            _logger.LogInformation("Previous RX: {Rx} bytes, Previous TX: {Tx} bytes",
-                _previousNetworkStats.RxBytes, _previousNetworkStats.TxBytes);
 
             var timeSpan = (currentTime - _previousNetworkTime.Value).TotalSeconds;
-            _logger.LogInformation("Time elapsed: {Time} seconds", timeSpan);
 
             if (timeSpan <= 0)
             {
@@ -367,14 +351,10 @@ public class SystemMonitorService : ISystemMonitorService
             var rxDiff = currentStats.RxBytes - _previousNetworkStats.RxBytes;
             var txDiff = currentStats.TxBytes - _previousNetworkStats.TxBytes;
 
-            _logger.LogInformation("Bytes difference - RX: {RxDiff}, TX: {TxDiff}", rxDiff, txDiff);
 
             var rxBytesPerSec = (long)(rxDiff / timeSpan);
             var txBytesPerSec = (long)(txDiff / timeSpan);
-
-            _logger.LogInformation(
-                "Calculated speed - RX: {Rx} bytes/s ({RxMbps} Mbps), TX: {Tx} bytes/s ({TxMbps} Mbps)",
-                rxBytesPerSec, rxBytesPerSec / 1024m / 1024m, txBytesPerSec, txBytesPerSec / 1024m / 1024m);
+            
 
             _previousNetworkStats = currentStats;
             _previousNetworkTime = currentTime;
@@ -385,8 +365,6 @@ public class SystemMonitorService : ISystemMonitorService
                 TxBytesPerSec = Math.Max(0, txBytesPerSec)
             };
 
-            _logger.LogInformation("=== NETWORK MONITORING END - Result: RX={Rx} bytes/s, TX={Tx} bytes/s ===",
-                result.RxBytesPerSec, result.TxBytesPerSec);
 
             return result;
         }
