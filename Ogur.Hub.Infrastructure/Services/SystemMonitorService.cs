@@ -6,6 +6,8 @@ using System.Globalization;
 using Ogur.Hub.Application.Interfaces;
 using Ogur.Hub.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace Ogur.Hub.Infrastructure.Services;
 
@@ -14,20 +16,21 @@ namespace Ogur.Hub.Infrastructure.Services;
 /// </summary>
 public class SystemMonitorService : ISystemMonitorService
 {
-    private readonly IVpsRepository _vpsRepository;
+    //private readonly IVpsRepository _vpsRepository;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SystemMonitorService> _logger;
     private CpuStats? _previousCpuStats;
     private NetworkStats? _previousNetworkStats;
     private DateTime? _previousNetworkTime;
-
+    
     /// <summary>
     /// Initializes a new instance of the <see cref="SystemMonitorService"/> class.
     /// </summary>
-    /// <param name="vpsRepository">VPS repository.</param>
+    /// <param name="serviceProvider">Service provider for scoped services.</param>
     /// <param name="logger">Logger instance.</param>
-    public SystemMonitorService(IVpsRepository vpsRepository, ILogger<SystemMonitorService> logger)
+    public SystemMonitorService(IServiceProvider serviceProvider, ILogger<SystemMonitorService> logger)
     {
-        _vpsRepository = vpsRepository;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -57,7 +60,9 @@ public class SystemMonitorService : ISystemMonitorService
                 LoadAverage15Min = loadAvg.Load15
             };
 
-            await _vpsRepository.AddSnapshotAsync(snapshot, cancellationToken);
+            using var scope = _serviceProvider.CreateScope();
+            var vpsRepository = scope.ServiceProvider.GetRequiredService<IVpsRepository>();
+            await vpsRepository.AddSnapshotAsync(snapshot, cancellationToken);
 
             _logger.LogInformation(
                 "Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",

@@ -96,7 +96,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ICommandDispatcher, CommandDispatcher>();
         services.AddScoped<IDockerMonitorService, DockerMonitorService>();
-        services.AddScoped<ISystemMonitorService, SystemMonitorService>();
+        services.AddSingleton<ISystemMonitorService, SystemMonitorService>();
         services.AddScoped<IVpsMonitorService, VpsMonitorService>();
         services.AddScoped<IVpsRepository, VpsRepository>();
         services.AddHostedService<VpsMonitoringBackgroundService>();
