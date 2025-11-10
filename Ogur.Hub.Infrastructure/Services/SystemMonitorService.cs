@@ -58,8 +58,9 @@ public class SystemMonitorService : ISystemMonitorService
             };
 
             await _vpsRepository.AddSnapshotAsync(snapshot, cancellationToken);
-            
-            _logger.LogInformation("Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",
+
+            _logger.LogInformation(
+                "Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",
                 cpuUsage, memoryInfo.Used / 1024m / 1024m / 1024m, memoryInfo.Total / 1024m / 1024m / 1024m,
                 diskInfo.Used / 1024m / 1024m / 1024m, diskInfo.Total / 1024m / 1024m / 1024m,
                 networkInfo.RxBytesPerSec / 1024m / 1024m, networkInfo.TxBytesPerSec / 1024m / 1024m);
@@ -83,7 +84,7 @@ public class SystemMonitorService : ISystemMonitorService
 
             var lines = await File.ReadAllLinesAsync(procStatPath, cancellationToken);
             var cpuLine = lines.FirstOrDefault(l => l.StartsWith("cpu "));
-            
+
             if (cpuLine == null)
             {
                 _logger.LogWarning("CPU line not found in {Path}", procStatPath);
@@ -149,7 +150,7 @@ public class SystemMonitorService : ISystemMonitorService
             }
 
             var lines = await File.ReadAllLinesAsync(meminfoPath, cancellationToken);
-            
+
             long memTotal = 0;
             long memAvailable = 0;
 
@@ -200,7 +201,7 @@ public class SystemMonitorService : ISystemMonitorService
 
             var lines = await File.ReadAllLinesAsync(mountsPath, cancellationToken);
             var rootMount = lines.FirstOrDefault(l => l.Contains(" / "));
-            
+
             if (rootMount == null)
             {
                 _logger.LogWarning("Root mount not found in {Path}", mountsPath);
@@ -208,7 +209,7 @@ public class SystemMonitorService : ISystemMonitorService
             }
 
             var driveInfo = new DriveInfo("/");
-            
+
             return new DiskInfo
             {
                 Total = driveInfo.TotalSize,
@@ -255,12 +256,16 @@ public class SystemMonitorService : ISystemMonitorService
             return new LoadAverage();
         }
     }
-    
+
     private async Task<NetworkInfo> GetNetworkInfoAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("=== NETWORK MONITORING START ===");
+
         try
         {
             var netDevPath = "/host/proc/net/dev";
+            _logger.LogInformation("Checking network file: {Path}", netDevPath);
+
             if (!File.Exists(netDevPath))
             {
                 _logger.LogWarning("/host/proc/net/dev not found, trying /proc/net/dev");
@@ -268,27 +273,61 @@ public class SystemMonitorService : ISystemMonitorService
             }
 
             var lines = await File.ReadAllLinesAsync(netDevPath, cancellationToken);
-            
+            _logger.LogInformation("Read {Count} lines from {Path}", lines.Length, netDevPath);
+
             long totalRxBytes = 0;
             long totalTxBytes = 0;
 
             foreach (var line in lines.Skip(2))
             {
                 var parts = line.Split(':', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length < 2) continue;
+                if (parts.Length < 2)
+                {
+                    _logger.LogWarning("Invalid line format (no colon): {Line}", line);
+                    continue;
+                }
 
                 var interfaceName = parts[0].Trim();
-                if (interfaceName == "lo") continue;
+                _logger.LogInformation("Processing interface: {Interface}", interfaceName);
+
+                if (interfaceName == "lo")
+                {
+                    _logger.LogInformation("Skipping loopback interface");
+                    continue;
+                }
 
                 var stats = parts[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (stats.Length < 9) continue;
+                _logger.LogInformation("Interface {Interface} has {Count} stat fields", interfaceName, stats.Length);
+
+                if (stats.Length < 9)
+                {
+                    _logger.LogWarning("Not enough stats for interface {Interface}: {Count} fields", interfaceName,
+                        stats.Length);
+                    continue;
+                }
 
                 if (long.TryParse(stats[0], out var rxBytes))
+                {
+                    _logger.LogInformation("Interface {Interface} RX: {Rx} bytes", interfaceName, rxBytes);
                     totalRxBytes += rxBytes;
-                
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to parse RX bytes for {Interface}: {Value}", interfaceName, stats[0]);
+                }
+
                 if (long.TryParse(stats[8], out var txBytes))
+                {
+                    _logger.LogInformation("Interface {Interface} TX: {Tx} bytes", interfaceName, txBytes);
                     totalTxBytes += txBytes;
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to parse TX bytes for {Interface}: {Value}", interfaceName, stats[8]);
+                }
             }
+
+            _logger.LogInformation("TOTAL NETWORK - RX: {Rx} bytes, TX: {Tx} bytes", totalRxBytes, totalTxBytes);
 
             var currentStats = new NetworkStats
             {
@@ -297,31 +336,54 @@ public class SystemMonitorService : ISystemMonitorService
             };
 
             var currentTime = DateTime.UtcNow;
+            _logger.LogInformation("Current time: {Time}", currentTime);
 
             if (_previousNetworkStats == null || _previousNetworkTime == null)
             {
+                _logger.LogInformation("FIRST CAPTURE - Storing baseline. Previous stats is NULL");
                 _previousNetworkStats = currentStats;
                 _previousNetworkTime = currentTime;
                 return new NetworkInfo();
             }
 
+            _logger.LogInformation("Previous capture time: {Time}", _previousNetworkTime.Value);
+            _logger.LogInformation("Previous RX: {Rx} bytes, Previous TX: {Tx} bytes",
+                _previousNetworkStats.RxBytes, _previousNetworkStats.TxBytes);
+
             var timeSpan = (currentTime - _previousNetworkTime.Value).TotalSeconds;
+            _logger.LogInformation("Time elapsed: {Time} seconds", timeSpan);
+
             if (timeSpan <= 0)
             {
+                _logger.LogWarning("Invalid time span: {Time} seconds", timeSpan);
                 return new NetworkInfo();
             }
 
-            var rxBytesPerSec = (long)((currentStats.RxBytes - _previousNetworkStats.RxBytes) / timeSpan);
-            var txBytesPerSec = (long)((currentStats.TxBytes - _previousNetworkStats.TxBytes) / timeSpan);
+            var rxDiff = currentStats.RxBytes - _previousNetworkStats.RxBytes;
+            var txDiff = currentStats.TxBytes - _previousNetworkStats.TxBytes;
+
+            _logger.LogInformation("Bytes difference - RX: {RxDiff}, TX: {TxDiff}", rxDiff, txDiff);
+
+            var rxBytesPerSec = (long)(rxDiff / timeSpan);
+            var txBytesPerSec = (long)(txDiff / timeSpan);
+
+            _logger.LogInformation(
+                "Calculated speed - RX: {Rx} bytes/s ({RxMbps} Mbps), TX: {Tx} bytes/s ({TxMbps} Mbps)",
+                rxBytesPerSec, rxBytesPerSec / 1024m / 1024m, txBytesPerSec, txBytesPerSec / 1024m / 1024m);
 
             _previousNetworkStats = currentStats;
             _previousNetworkTime = currentTime;
 
-            return new NetworkInfo
+            var result = new NetworkInfo
             {
                 RxBytesPerSec = Math.Max(0, rxBytesPerSec),
                 TxBytesPerSec = Math.Max(0, txBytesPerSec)
             };
+
+            _logger.LogInformation("=== NETWORK MONITORING END - Result: RX={Rx} bytes/s, TX={Tx} bytes/s ===",
+                result.RxBytesPerSec, result.TxBytesPerSec);
+
+            return result;
         }
         catch (Exception ex)
         {
@@ -339,7 +401,7 @@ public class SystemMonitorService : ISystemMonitorService
         public long IoWait { get; init; }
         public long Irq { get; init; }
         public long SoftIrq { get; init; }
-        
+
         public long Total => User + Nice + System + Idle + IoWait + Irq + SoftIrq;
     }
 
@@ -361,7 +423,7 @@ public class SystemMonitorService : ISystemMonitorService
         public decimal Load5 { get; init; }
         public decimal Load15 { get; init; }
     }
-    
+
     private record NetworkStats
     {
         public long RxBytes { get; init; }
