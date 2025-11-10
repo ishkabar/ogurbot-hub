@@ -165,9 +165,9 @@ jobs:
                 environment:
                   - ASPNETCORE_ENVIRONMENT=Production
                   - ASPNETCORE_URLS=http://+:8080
-                  - HubApi__BaseUrl=http://ogurhub-api:8080
-                  - ApiSettings__BaseUrl=http://ogurhub-api:8080
-                  - ApiSettings__SignalRUrl=http://ogurhub-api:8080/hubs/devices
+                  - HubApi__BaseUrl=https://${API_DOMAIN}
+                  - ApiSettings__BaseUrl=https://${API_DOMAIN}
+                  - ApiSettings__SignalRUrl=https://${API_DOMAIN}/hubs/vps
                 networks: [ web ]
                 labels:
                   traefik.enable: "true"

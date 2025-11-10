@@ -277,7 +277,8 @@ else
 
     function setupSignalR() {
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl(vpsData.apiBaseUrl + "/hubs/vps")
+            //.withUrl(vpsData.apiBaseUrl + "/hubs/vps")
+            .withUrl("https://api.hub.ogur.dev/hubs/vps")
             .withAutomaticReconnect()
             .build();
 
