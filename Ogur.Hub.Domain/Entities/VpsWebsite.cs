@@ -52,7 +52,7 @@ public class VpsWebsite
     /// <summary>
     /// Gets or sets the timestamp when the website was last checked.
     /// </summary>
-    public DateTime LastCheckedAt { get; set; }
+    public DateTime? LastCheckedAt { get; set; }
 
     /// <summary>
     /// Gets or sets the HTTP status code from the last health check.

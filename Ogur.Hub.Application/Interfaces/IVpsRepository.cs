@@ -50,12 +50,36 @@ public interface IVpsRepository
     Task<List<VpsWebsite>> GetAllWebsitesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a website by ID.
+    /// </summary>
+    /// <param name="id">Website ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Website if found, null otherwise.</returns>
+    Task<VpsWebsite?> GetWebsiteByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a new website.
+    /// </summary>
+    /// <param name="website">Website to add.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Task representing the operation.</returns>
+    Task AddWebsiteAsync(VpsWebsite website, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates an existing website.
     /// </summary>
     /// <param name="website">Website to update.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Task representing the operation.</returns>
     Task UpdateWebsiteAsync(VpsWebsite website, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a website.
+    /// </summary>
+    /// <param name="website">Website to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Task representing the operation.</returns>
+    Task DeleteWebsiteAsync(VpsWebsite website, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all resource snapshots.

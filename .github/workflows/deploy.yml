@@ -112,12 +112,14 @@ jobs:
           OGURHUB_WEB_DOMAIN: ${{ secrets.OGURHUB_WEB_DOMAIN }}
           DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TRAEFIK_USERNAME: ${{ secrets.TRAEFIK_USERNAME }}
+          TRAEFIK_PASSWORD: ${{ secrets.TRAEFIK_PASSWORD }}
         with:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: GITHUB_ACTOR,GITHUB_TOKEN,GITHUB_OWNER,IMAGE_TAG,OGURHUB_API_DOMAIN,OGURHUB_WEB_DOMAIN,DB_CONNECTION_STRING,JWT_SECRET
+          envs: GITHUB_ACTOR,GITHUB_TOKEN,GITHUB_OWNER,IMAGE_TAG,OGURHUB_API_DOMAIN,OGURHUB_WEB_DOMAIN,DB_CONNECTION_STRING,JWT_SECRET,TRAEFIK_USERNAME,TRAEFIK_PASSWORD
           script: |
             set -eo pipefail
             GH_OWNER="${GITHUB_OWNER:-ishkabar}"
@@ -169,6 +171,9 @@ jobs:
                   - HubApi__BaseUrl=https://${API_DOMAIN}
                   - ApiSettings__BaseUrl=https://${API_DOMAIN}
                   - ApiSettings__SignalRUrl=https://${API_DOMAIN}/hubs/vps
+                  - Traefik__DashboardUrl=https://traefik.ogur.dev
+                  - Traefik__Username=${TRAEFIK_USERNAME}
+                  - Traefik__Password=${TRAEFIK_PASSWORD}
                 networks: [ web ]
                 labels:
                   traefik.enable: "true"
@@ -193,6 +198,8 @@ jobs:
             WEB_DOMAIN=${WEB_DOMAIN}
             DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
             JWT_SECRET=${JWT_SECRET}
+            TRAEFIK_USERNAME=${TRAEFIK_USERNAME}
+            TRAEFIK_PASSWORD=${TRAEFIK_PASSWORD}
             EOF
             
             echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin

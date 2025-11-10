@@ -26,6 +26,22 @@ public interface IVpsMonitorService
     Task<List<VpsWebsiteDto>> GetWebsitesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Adds a new website to monitor.
+    /// </summary>
+    /// <param name="dto">Website data.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Added website DTO.</returns>
+    Task<VpsWebsiteDto> AddWebsiteAsync(AddWebsiteDto dto, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a website.
+    /// </summary>
+    /// <param name="id">Website ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Task representing the operation.</returns>
+    Task DeleteWebsiteAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets current VPS resource usage.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

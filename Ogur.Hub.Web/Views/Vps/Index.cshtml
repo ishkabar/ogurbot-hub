@@ -13,21 +13,24 @@ ViewData["Title"] = Model.Title;
                 <p class="text-muted">@Model.Description</p>
             </div>
             <div>
-                <button type="button" class="btn btn-primary" onclick="refreshContainers()">
-                    <i class="dx-icon-refresh"></i> Refresh Containers
+                <button type="button" class="btn btn-outline-secondary me-2" onclick="toggleResourceView()">
+                    <i class="dx-icon-chart" id="viewToggleIcon"></i> <span id="viewToggleText">Gauge View</span>
                 </button>
-                <button type="button" class="btn btn-primary" onclick="refreshWebsites()">
-                    <i class="dx-icon-refresh"></i> Refresh Websites
+                <button type="button" class="btn btn-success" onclick="showAddWebsitePopup()">
+                    <i class="dx-icon-add"></i> Add Website
+                </button>
+                <button type="button" class="btn btn-primary" onclick="refreshAll()">
+                    <i class="dx-icon-refresh"></i> Refresh All
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Resource Stats Cards -->
+<!-- Resource Stats Cards View -->
+<div id="cardsView" class="row mb-4" style="display: block;">
 @if (Model.CurrentResources != null)
 {
-<div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
         <div class="card stat-card bg-primary text-white">
             <div class="card-body">
@@ -95,18 +98,59 @@ ViewData["Title"] = Model.Title;
             </div>
         </div>
     </div>
-</div>
 }
 else
 {
-<div class="row mb-4">
     <div class="col-12">
         <div class="alert alert-info">
             <i class="dx-icon-info"></i> Loading VPS resource data...
         </div>
     </div>
-</div>
 }
+</div>
+
+<!-- Resource Stats Gauge View -->
+<div id="gaugeView" class="row mb-4" style="display: none;">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-3">CPU Usage</h6>
+                <div id="cpuGauge"></div>
+                <small id="cpuLoadGauge" class="text-muted">Load: @(Model.CurrentResources?.LoadAverage1Min.ToString("F2") ?? "N/A")</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-3">Memory</h6>
+                <div id="memoryGauge"></div>
+                <small id="memoryDetailsGauge" class="text-muted">@(Model.CurrentResources?.MemoryUsedGb.ToString("F1") ?? "0") GB / @(Model.CurrentResources?.MemoryTotalGb.ToString("F1") ?? "0") GB</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-3">Disk</h6>
+                <div id="diskGauge"></div>
+                <small id="diskDetailsGauge" class="text-muted">@(Model.CurrentResources?.DiskUsedGb.ToString("F1") ?? "0") GB / @(Model.CurrentResources?.DiskTotalGb.ToString("F1") ?? "0") GB</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-3">Network RX</h6>
+                <div id="networkGauge"></div>
+                <small id="networkTxGauge" class="text-muted">TX: @(Model.CurrentResources?.NetworkTxMbps.ToString("F1") ?? "0") Mbps</small>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Containers Card -->
 <div class="row mb-4">
@@ -136,14 +180,16 @@ else
     </div>
 </div>
 
-@* File: Hub.Web/Views/Vps/Index.cshtml *@
+<!-- Add Website Popup -->
+<div id="addWebsitePopup"></div>
+
 @section Scripts {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
 <script>
     let containersGrid;
     let websitesGrid;
+    let addWebsitePopup;
 
-    // Initialize with server-side data - PascalCase!
     const vpsData = {
         containers: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Containers)),
         websites: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Websites)),
@@ -155,14 +201,130 @@ else
         websitesCount: vpsData.websites.length
     });
 
+let cpuGauge, memoryGauge, diskGauge, networkGauge;
+let isGaugeView = false;
+
     $(function() {
-        // Initialize grids SYNCHRONOUSLY with data from server
         initializeContainersGrid();
         initializeWebsitesGrid();
-
-        // Setup SignalR after grids are ready
+        initializeAddWebsitePopup();
+        initializeGauges();
         setupSignalR();
     });
+
+function initializeGauges() {
+    cpuGauge = $("#cpuGauge").dxCircularGauge({
+        scale: {
+            startValue: 0,
+            endValue: 100,
+            tickInterval: 20
+        },
+        rangeContainer: {
+            ranges: [
+                { startValue: 0, endValue: 50, color: "#92d050" },
+                { startValue: 50, endValue: 75, color: "#ffc000" },
+                { startValue: 75, endValue: 100, color: "#ff0000" }
+            ]
+        },
+        value: @(Model.CurrentResources?.CpuUsagePercent ?? 0),
+        valueIndicator: {
+            type: "twoColorNeedle",
+            color: "#8e44ad"
+        },
+        title: {
+            text: @Model.CurrentResources?.CpuUsagePercent.ToString("F1") + "%",
+            font: { size: 20, weight: 600 }
+        }
+    }).dxCircularGauge("instance");
+
+    memoryGauge = $("#memoryGauge").dxCircularGauge({
+        scale: {
+            startValue: 0,
+            endValue: 100,
+            tickInterval: 20
+        },
+        rangeContainer: {
+            ranges: [
+                { startValue: 0, endValue: 50, color: "#92d050" },
+                { startValue: 50, endValue: 75, color: "#ffc000" },
+                { startValue: 75, endValue: 100, color: "#ff0000" }
+            ]
+        },
+        value: @(Model.CurrentResources?.MemoryUsagePercent ?? 0),
+        valueIndicator: {
+            type: "twoColorNeedle",
+            color: "#27ae60"
+        },
+        title: {
+            text: @Model.CurrentResources?.MemoryUsagePercent.ToString("F1") + "%",
+            font: { size: 20, weight: 600 }
+        }
+    }).dxCircularGauge("instance");
+
+    diskGauge = $("#diskGauge").dxCircularGauge({
+        scale: {
+            startValue: 0,
+            endValue: 100,
+            tickInterval: 20
+        },
+        rangeContainer: {
+            ranges: [
+                { startValue: 0, endValue: 50, color: "#92d050" },
+                { startValue: 50, endValue: 75, color: "#ffc000" },
+                { startValue: 75, endValue: 100, color: "#ff0000" }
+            ]
+        },
+        value: @(Model.CurrentResources?.DiskUsagePercent ?? 0),
+        valueIndicator: {
+            type: "twoColorNeedle",
+            color: "#f39c12"
+        },
+        title: {
+            text: @Model.CurrentResources?.DiskUsagePercent.ToString("F1") + "%",
+            font: { size: 20, weight: 600 }
+        }
+    }).dxCircularGauge("instance");
+
+    networkGauge = $("#networkGauge").dxCircularGauge({
+        scale: {
+            startValue: 0,
+            endValue: 100,
+            tickInterval: 20
+        },
+        rangeContainer: {
+            ranges: [
+                { startValue: 0, endValue: 50, color: "#92d050" },
+                { startValue: 50, endValue: 75, color: "#ffc000" },
+                { startValue: 75, endValue: 100, color: "#ff0000" }
+            ]
+        },
+        value: @(Model.CurrentResources?.NetworkRxMbps ?? 0),
+        valueIndicator: {
+            type: "twoColorNeedle",
+            color: "#3498db"
+        },
+        title: {
+            text: @Model.CurrentResources?.NetworkRxMbps.ToString("F1") + " Mbps",
+            font: { size: 20, weight: 600 }
+        }
+    }).dxCircularGauge("instance");
+}
+
+function toggleResourceView() {
+    isGaugeView = !isGaugeView;
+    
+    if (isGaugeView) {
+        $("#cardsView").hide();
+        $("#gaugeView").show();
+        $("#viewToggleText").text("Card View");
+        $("#viewToggleIcon").removeClass("dx-icon-chart").addClass("dx-icon-card");
+    } else {
+        $("#cardsView").show();
+        $("#gaugeView").hide();
+        $("#viewToggleText").text("Gauge View");
+        $("#viewToggleIcon").removeClass("dx-icon-card").addClass("dx-icon-chart");
+    }
+}
 
     function initializeContainersGrid() {
         console.log("Initializing containers grid with", vpsData.containers.length, "items");
@@ -175,30 +337,30 @@ else
             columnAutoWidth: true,
             noDataText: "No containers found",
             columns: [
-                { dataField: "Name", caption: "Name", width: 200 },  // ✅ PascalCase
-                { dataField: "Image", caption: "Image", width: 250 },  // ✅ PascalCase
-                { dataField: "State", caption: "State", width: 100 },  // ✅ PascalCase
-                { dataField: "Status", caption: "Status", width: 150 },  // ✅ PascalCase
+                { dataField: "Name", caption: "Name", width: 200 },
+                { dataField: "Image", caption: "Image", width: 250 },
+                { dataField: "State", caption: "State", width: 100 },
+                { dataField: "Status", caption: "Status", width: 150 },
                 {
-                    dataField: "CpuUsagePercent",  // ✅ PascalCase
+                    dataField: "CpuUsagePercent",
                     caption: "CPU %",
                     width: 100,
                     format: { type: "fixedPoint", precision: 1 }
                 },
                 {
-                    dataField: "MemoryUsagePercent",  // ✅ PascalCase
+                    dataField: "MemoryUsagePercent",
                     caption: "Memory %",
                     width: 100,
                     format: { type: "fixedPoint", precision: 1 }
                 },
                 {
-                    dataField: "MemoryUsageMb",  // ✅ PascalCase
+                    dataField: "MemoryUsageMb",
                     caption: "Memory (MB)",
                     width: 120,
                     format: { type: "fixedPoint", precision: 0 }
                 },
                 {
-                    dataField: "LastUpdatedAt",  // ✅ PascalCase
+                    dataField: "LastUpdatedAt",
                     caption: "Last Updated",
                     dataType: "datetime",
                     format: "dd/MM/yyyy HH:mm:ss",
@@ -224,11 +386,11 @@ else
             columnAutoWidth: true,
             noDataText: "No websites found",
             columns: [
-                { dataField: "Domain", caption: "Domain", width: 250 },  // ✅ PascalCase
-                { dataField: "ServiceName", caption: "Service", width: 150 },  // ✅ PascalCase
-                { dataField: "ContainerName", caption: "Container", width: 150 },  // ✅ PascalCase
+                { dataField: "Domain", caption: "Domain", width: 250 },
+                { dataField: "ServiceName", caption: "Service", width: 150 },
+                { dataField: "ContainerName", caption: "Container", width: 150 },
                 {
-                    dataField: "IsActive",  // ✅ PascalCase
+                    dataField: "IsActive",
                     caption: "Status",
                     width: 100,
                     cellTemplate: function(container, options) {
@@ -239,7 +401,7 @@ else
                     }
                 },
                 {
-                    dataField: "SslEnabled",  // ✅ PascalCase
+                    dataField: "SslEnabled",
                     caption: "SSL",
                     width: 80,
                     cellTemplate: function(container, options) {
@@ -250,21 +412,32 @@ else
                     }
                 },
                 {
-                    dataField: "LastStatusCode",  // ✅ PascalCase
+                    dataField: "LastStatusCode",
                     caption: "HTTP Status",
                     width: 120
                 },
                 {
-                    dataField: "LastResponseTimeMs",  // ✅ PascalCase
+                    dataField: "LastResponseTimeMs",
                     caption: "Response (ms)",
                     width: 130
                 },
                 {
-                    dataField: "LastCheckedAt",  // ✅ PascalCase
+                    dataField: "LastCheckedAt",
                     caption: "Last Checked",
                     dataType: "datetime",
                     format: "dd/MM/yyyy HH:mm:ss",
                     width: 180
+                },
+                {
+                    type: "buttons",
+                    width: 80,
+                    buttons: [{
+                        hint: "Delete",
+                        icon: "trash",
+                        onClick: function(e) {
+                            deleteWebsite(e.row.data.Id, e.row.data.Domain);
+                        }
+                    }]
                 }
             ],
             paging: { pageSize: 20 },
@@ -275,31 +448,138 @@ else
         console.log("Websites grid initialized with", websitesGrid.totalCount(), "rows");
     }
 
+    function initializeAddWebsitePopup() {
+        addWebsitePopup = $("#addWebsitePopup").dxPopup({
+            title: "Add Website",
+            width: 500,
+            height: "auto",
+            contentTemplate: function(contentElement) {
+                const form = $("<div>").dxForm({
+                    formData: {
+                        domain: "",
+                        serviceName: "",
+                        sslEnabled: true
+                    },
+                    items: [
+                        {
+                            dataField: "domain",
+                            label: { text: "Domain" },
+                            editorOptions: {
+                                placeholder: "example.com"
+                            },
+                            validationRules: [{ type: "required", message: "Domain is required" }]
+                        },
+                        {
+                            dataField: "serviceName",
+                            label: { text: "Service Name" },
+                            editorOptions: {
+                                placeholder: "My Service"
+                            },
+                            validationRules: [{ type: "required", message: "Service name is required" }]
+                        },
+                        {
+                            dataField: "sslEnabled",
+                            editorType: "dxCheckBox",
+                            label: { text: "SSL Enabled (HTTPS)" }
+                        }
+                    ]
+                }).appendTo(contentElement);
+
+                const buttonContainer = $("<div>").addClass("text-end mt-3").appendTo(contentElement);
+
+                $("<div>").dxButton({
+                    text: "Add Website",
+                    type: "success",
+                    onClick: function() {
+                        const formInstance = form.dxForm("instance");
+                        if (!formInstance.validate().isValid) return;
+
+                        const data = formInstance.option("formData");
+                        submitAddWebsite(data);
+                    }
+                }).appendTo(buttonContainer);
+
+                $("<div>").dxButton({
+                    text: "Cancel",
+                    onClick: function() {
+                        addWebsitePopup.hide();
+                    }
+                }).addClass("ms-2").appendTo(buttonContainer);
+            }
+        }).dxPopup("instance");
+    }
+
+    function showAddWebsitePopup() {
+        addWebsitePopup.show();
+    }
+
+    function submitAddWebsite(data) {
+        $.ajax({
+            url: vpsData.apiBaseUrl + '/api/vps/websites',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(result) {
+                DevExpress.ui.notify("Website added successfully!", "success", 2000);
+                addWebsitePopup.hide();
+
+                // Reload websites
+                $.get(vpsData.apiBaseUrl + '/api/vps/websites', function(websites) {
+                    websitesGrid.option("dataSource", websites);
+                    $("#websitesCount").text(websites.length);
+                });
+            },
+            error: function() {
+                DevExpress.ui.notify("Failed to add website", "error", 2000);
+            }
+        });
+    }
+
+    function deleteWebsite(id, domain) {
+        DevExpress.ui.dialog.confirm("Are you sure you want to delete website: " + domain + "?", "Confirm Delete")
+            .then(function(confirmed) {
+                if (confirmed) {
+                    $.ajax({
+                        url: vpsData.apiBaseUrl + '/api/vps/websites/' + id,
+                        method: 'DELETE',
+                        success: function() {
+                            DevExpress.ui.notify("Website deleted successfully!", "success", 2000);
+
+                            // Reload websites
+                            $.get(vpsData.apiBaseUrl + '/api/vps/websites', function(websites) {
+                                websitesGrid.option("dataSource", websites);
+                                $("#websitesCount").text(websites.length);
+                            });
+                        },
+                        error: function() {
+                            DevExpress.ui.notify("Failed to delete website", "error", 2000);
+                        }
+                    });
+                }
+            });
+    }
+
     function setupSignalR() {
         const connection = new signalR.HubConnectionBuilder()
-            //.withUrl(vpsData.apiBaseUrl + "/hubs/vps")
-            .withUrl("https://api.hub.ogur.dev/hubs/vps")
+            .withUrl(vpsData.apiBaseUrl + "/hubs/vps")
             .withAutomaticReconnect()
             .build();
 
         connection.on("VpsStatsUpdated", function(data) {
             console.log("VPS stats updated via SignalR", data);
 
-            // Update containers grid - PascalCase check
             if (data.Containers && Array.isArray(data.Containers) && data.Containers.length > 0) {
                 console.log("Updating containers:", data.Containers.length);
                 containersGrid.option("dataSource", data.Containers);
                 $("#containersCount").text(data.Containers.length);
             }
 
-            // Update websites grid - PascalCase check
-            if (data.Websites && Array.isArray(data.Websites) && data.Websites.length > 0) {
+            if (data.Websites && Array.isArray(data.Websites)) {
                 console.log("Updating websites:", data.Websites.length);
                 websitesGrid.option("dataSource", data.Websites);
                 $("#websitesCount").text(data.Websites.length);
             }
 
-            // Update resource cards - PascalCase
             if (data.Resources) {
                 console.log("Updating resources");
                 updateResourceCards(data.Resources);
@@ -327,48 +607,60 @@ else
     }
 
     function updateResourceCards(resources) {
-        // PascalCase properties
-        $("#cpuUsage").text(resources.CpuUsagePercent.toFixed(1) + "%");
-        $("#cpuLoad").text("Load: " + resources.LoadAverage1Min.toFixed(2));
+    // Update cards
+    $("#cpuUsage").text(resources.CpuUsagePercent.toFixed(1) + "%");
+    $("#cpuLoad").text("Load: " + resources.LoadAverage1Min.toFixed(2));
 
-        $("#memoryUsage").text(resources.MemoryUsagePercent.toFixed(1) + "%");
-        $("#memoryDetails").text(
-            resources.MemoryUsedGb.toFixed(1) + " GB / " +
-            resources.MemoryTotalGb.toFixed(1) + " GB"
-        );
+    $("#memoryUsage").text(resources.MemoryUsagePercent.toFixed(1) + "%");
+    $("#memoryDetails").text(
+        resources.MemoryUsedGb.toFixed(1) + " GB / " +
+        resources.MemoryTotalGb.toFixed(1) + " GB"
+    );
 
-        $("#diskUsage").text(resources.DiskUsagePercent.toFixed(1) + "%");
-        $("#diskDetails").text(
-            resources.DiskUsedGb.toFixed(1) + " GB / " +
-            resources.DiskTotalGb.toFixed(1) + " GB"
-        );
+    $("#diskUsage").text(resources.DiskUsagePercent.toFixed(1) + "%");
+    $("#diskDetails").text(
+        resources.DiskUsedGb.toFixed(1) + " GB / " +
+        resources.DiskTotalGb.toFixed(1) + " GB"
+    );
 
-        $("#networkRx").text(resources.NetworkRxMbps.toFixed(1) + " Mbps");
-        $("#networkTx").text("TX: " + resources.NetworkTxMbps.toFixed(1) + " Mbps");
-    }
+    $("#networkRx").text(resources.NetworkRxMbps.toFixed(1) + " Mbps");
+    $("#networkTx").text("TX: " + resources.NetworkTxMbps.toFixed(1) + " Mbps");
 
-    function refreshContainers() {
-        $.post('@Url.Action("RefreshContainers", "Vps")', function(result) {
-            if (result.success) {
-                DevExpress.ui.notify("Containers refreshed successfully!", "success", 2000);
-            } else {
-                DevExpress.ui.notify("Failed to refresh containers", "error", 2000);
-            }
-        }).fail(function() {
-            DevExpress.ui.notify("Error refreshing containers", "error", 2000);
-        });
-    }
+    // Update gauges
+    cpuGauge.option("value", resources.CpuUsagePercent);
+    cpuGauge.option("title.text", resources.CpuUsagePercent.toFixed(1) + "%");
+    $("#cpuLoadGauge").text("Load: " + resources.LoadAverage1Min.toFixed(2));
 
-    function refreshWebsites() {
-        $.post('@Url.Action("RefreshWebsites", "Vps")', function(result) {
-            if (result.success) {
-                DevExpress.ui.notify("Websites refreshed successfully!", "success", 2000);
-            } else {
-                DevExpress.ui.notify("Failed to refresh websites", "error", 2000);
-            }
-        }).fail(function() {
-            DevExpress.ui.notify("Error refreshing websites", "error", 2000);
-        });
+    memoryGauge.option("value", resources.MemoryUsagePercent);
+    memoryGauge.option("title.text", resources.MemoryUsagePercent.toFixed(1) + "%");
+    $("#memoryDetailsGauge").text(
+        resources.MemoryUsedGb.toFixed(1) + " GB / " +
+        resources.MemoryTotalGb.toFixed(1) + " GB"
+    );
+
+    diskGauge.option("value", resources.DiskUsagePercent);
+    diskGauge.option("title.text", resources.DiskUsagePercent.toFixed(1) + "%");
+    $("#diskDetailsGauge").text(
+        resources.DiskUsedGb.toFixed(1) + " GB / " +
+        resources.DiskTotalGb.toFixed(1) + " GB"
+    );
+
+    networkGauge.option("value", Math.min(resources.NetworkRxMbps, 100));
+    networkGauge.option("title.text", resources.NetworkRxMbps.toFixed(1) + " Mbps");
+    $("#networkTxGauge").text("TX: " + resources.NetworkTxMbps.toFixed(1) + " Mbps");
+}
+
+    function refreshAll() {
+        DevExpress.ui.notify("Refreshing all data...", "info", 1000);
+
+        $.post('@Url.Action("RefreshContainers", "Vps")')
+            .then(() => $.post('@Url.Action("RefreshWebsites", "Vps")'))
+            .then(() => {
+                DevExpress.ui.notify("All data refreshed successfully!", "success", 2000);
+            })
+            .fail(() => {
+                DevExpress.ui.notify("Error refreshing data", "error", 2000);
+            });
     }
 </script>
 }

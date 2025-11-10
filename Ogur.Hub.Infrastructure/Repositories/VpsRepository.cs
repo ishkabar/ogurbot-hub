@@ -61,9 +61,31 @@ public class VpsRepository : IVpsRepository
     }
 
     /// <inheritdoc/>
+    public async Task<VpsWebsite?> GetWebsiteByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _context.VpsWebsites
+            .Include(w => w.Container)
+            .FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task AddWebsiteAsync(VpsWebsite website, CancellationToken cancellationToken = default)
+    {
+        await _context.VpsWebsites.AddAsync(website, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public async Task UpdateWebsiteAsync(VpsWebsite website, CancellationToken cancellationToken = default)
     {
         _context.VpsWebsites.Update(website);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task DeleteWebsiteAsync(VpsWebsite website, CancellationToken cancellationToken = default)
+    {
+        _context.VpsWebsites.Remove(website);
         await _context.SaveChangesAsync(cancellationToken);
     }
 

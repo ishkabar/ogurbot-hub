@@ -47,7 +47,7 @@ public record VpsWebsiteDto
     /// <summary>
     /// Gets the timestamp when the website was last checked.
     /// </summary>
-    public DateTime LastCheckedAt { get; init; }
+    public DateTime? LastCheckedAt { get; init; }
 
     /// <summary>
     /// Gets the HTTP status code from the last health check.

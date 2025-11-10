@@ -113,4 +113,51 @@ public class VpsController : ControllerBase
         await _vpsMonitor.RefreshWebsiteHealthAsync(cancellationToken);
         return Ok();
     }
+    
+    /// <summary>
+    /// Adds a new website to monitor.
+    /// </summary>
+    /// <param name="dto">Website data.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Added website.</returns>
+    [HttpPost("websites")]
+    public async Task<IActionResult> AddWebsite([FromBody] AddWebsiteDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var website = await _vpsMonitor.AddWebsiteAsync(dto, cancellationToken);
+            return Ok(website);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add website {Domain}", dto.Domain);
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a website.
+    /// </summary>
+    /// <param name="id">Website ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Action result.</returns>
+    [HttpDelete("websites/{id}")]
+    public async Task<IActionResult> DeleteWebsite(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _vpsMonitor.DeleteWebsiteAsync(id, cancellationToken);
+            return Ok();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Website {Id} not found", id);
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete website {Id}", id);
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

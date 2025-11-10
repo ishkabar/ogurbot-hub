@@ -91,6 +91,78 @@ public class VpsMonitorService : IVpsMonitorService
     }
 
     /// <inheritdoc/>
+    public async Task<VpsWebsiteDto> AddWebsiteAsync(AddWebsiteDto dto, CancellationToken cancellationToken = default)
+    {
+        var website = new VpsWebsite
+        {
+            Domain = dto.Domain.Trim().ToLowerInvariant(),
+            ServiceName = dto.ServiceName.Trim(),
+            SslEnabled = dto.SslEnabled,
+            ContainerId = dto.ContainerId,
+            IsActive = false,
+            LastCheckedAt = null,
+            LastStatusCode = null,
+            LastResponseTimeMs = null,
+            SslExpiresAt = null
+        };
+
+        await _vpsRepository.AddWebsiteAsync(website, cancellationToken);
+
+        try
+        {
+            var protocol = website.SslEnabled ? "https" : "http";
+            var url = $"{protocol}://{website.Domain}";
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var response = await httpClient.GetAsync(url, cancellationToken);
+            stopwatch.Stop();
+
+            website.LastStatusCode = (int)response.StatusCode;
+            website.LastResponseTimeMs = (int)stopwatch.ElapsedMilliseconds;
+            website.IsActive = response.IsSuccessStatusCode;
+            website.LastCheckedAt = DateTime.UtcNow;
+
+            await _vpsRepository.UpdateWebsiteAsync(website, cancellationToken);
+            
+            _logger.LogInformation("Added website {Domain} with initial health check: {StatusCode} ({ResponseTime}ms)",
+                website.Domain, response.StatusCode, stopwatch.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Initial health check failed for {Domain}", website.Domain);
+        }
+
+        return new VpsWebsiteDto
+        {
+            Id = website.Id,
+            Domain = website.Domain,
+            ServiceName = website.ServiceName,
+            ContainerName = website.Container?.Name,
+            SslEnabled = website.SslEnabled,
+            SslExpiresAt = website.SslExpiresAt,
+            IsActive = website.IsActive,
+            LastCheckedAt = DateTime.UtcNow,
+            LastStatusCode = website.LastStatusCode,
+            LastResponseTimeMs = website.LastResponseTimeMs,
+            SslExpiringSoon = false
+        };
+    }
+
+    /// <inheritdoc/>
+    public async Task DeleteWebsiteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var website = await _vpsRepository.GetWebsiteByIdAsync(id, cancellationToken);
+        if (website == null)
+        {
+            throw new InvalidOperationException($"Website with ID {id} not found");
+        }
+
+        await _vpsRepository.DeleteWebsiteAsync(website, cancellationToken);
+        _logger.LogInformation("Deleted website: {Domain} (ID: {Id})", website.Domain, id);
+    }
+
+    /// <inheritdoc/>
     public async Task<VpsResourceDto> GetCurrentResourcesAsync(CancellationToken cancellationToken = default)
     {
         var snapshots = await _vpsRepository.GetAllSnapshotsAsync(cancellationToken);
