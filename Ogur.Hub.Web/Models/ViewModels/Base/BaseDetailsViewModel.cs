@@ -1,8 +1,8 @@
-﻿// File: Hub.Web/Models/ViewModels/BaseDetailsViewModel.cs
+﻿// File: Hub.Web/Models/ViewModels/Base/BaseDetailsViewModel.cs
 // Project: Hub.Web
-// Namespace: Ogur.Hub.Web.Models.ViewModels
+// Namespace: Ogur.Hub.Web.Models.ViewModels.Base
 
-namespace Ogur.Hub.Web.Models.ViewModels;
+namespace Ogur.Hub.Web.Models.ViewModels.Base;
 
 /// <summary>
 /// Base view model for details pages

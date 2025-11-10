@@ -1,10 +1,10 @@
-﻿// File: Hub.Web/Models/ViewModels/BasePageViewModel.cs
+﻿// File: Hub.Web/Models/ViewModels/Base/BasePageViewModel.cs
 // Project: Hub.Web
-// Namespace: Ogur.Hub.Web.Models.ViewModels
+// Namespace: Ogur.Hub.Web.Models.ViewModels.Base
 
 using Ogur.Hub.Web.Services;
 
-namespace Ogur.Hub.Web.Models.ViewModels;
+namespace Ogur.Hub.Web.Models.ViewModels.Base;
 
 /// <summary>
 /// Base view model for all pages providing common properties

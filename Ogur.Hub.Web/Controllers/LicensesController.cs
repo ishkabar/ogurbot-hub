@@ -27,6 +27,24 @@ public sealed class LicensesController : BaseController
         _hubApiClient = hubApiClient;
         _logger = logger;
     }
+    
+    /// <summary>
+    /// Displays create license form
+    /// </summary>
+    /// <returns>Create license view</returns>
+    [HttpGet]
+    public IActionResult Create()
+    {
+        var viewModel = new LicenseCreateViewModel
+        {
+            Title = "New License",
+            Description = "Register a new license",
+            Username = Username,
+            IsAdmin = IsAdmin
+        };
+    
+        return View(viewModel);
+    }
 
     /// <summary>
     /// Displays list of licenses

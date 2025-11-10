@@ -1,4 +1,6 @@
-﻿namespace Ogur.Hub.Web.Models.ViewModels;
+﻿using Ogur.Hub.Web.Models.ViewModels.Base;
+
+namespace Ogur.Hub.Web.Models.ViewModels;
 
 
 /// <summary>

@@ -118,4 +118,22 @@ public sealed class UsersController : BaseController
         
         return View(viewModel);
     }
+    
+    /// <summary>
+    /// Displays create user form
+    /// </summary>
+    /// <returns>Create user view</returns>
+    [HttpGet]
+    public IActionResult Create()
+    {
+        var viewModel = new UserCreateViewModel
+        {
+            Title = "New User",
+            Description = "Register a new user",
+            Username = Username,
+            IsAdmin = IsAdmin
+        };
+    
+        return View(viewModel);
+    }
 }
