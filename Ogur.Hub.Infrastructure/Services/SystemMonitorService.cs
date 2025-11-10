@@ -17,6 +17,8 @@ public class SystemMonitorService : ISystemMonitorService
     private readonly IVpsRepository _vpsRepository;
     private readonly ILogger<SystemMonitorService> _logger;
     private CpuStats? _previousCpuStats;
+    private NetworkStats? _previousNetworkStats;
+    private DateTime? _previousNetworkTime;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SystemMonitorService"/> class.
@@ -38,6 +40,7 @@ public class SystemMonitorService : ISystemMonitorService
             var memoryInfo = await GetMemoryInfoAsync(cancellationToken);
             var diskInfo = await GetDiskInfoAsync(cancellationToken);
             var loadAvg = await GetLoadAverageAsync(cancellationToken);
+            var networkInfo = await GetNetworkInfoAsync(cancellationToken);
 
             var snapshot = new VpsResourceSnapshot
             {
@@ -47,8 +50,8 @@ public class SystemMonitorService : ISystemMonitorService
                 MemoryUsedBytes = memoryInfo.Used,
                 DiskTotalBytes = diskInfo.Total,
                 DiskUsedBytes = diskInfo.Used,
-                NetworkRxBytesPerSec = 0,
-                NetworkTxBytesPerSec = 0,
+                NetworkRxBytesPerSec = networkInfo.RxBytesPerSec,
+                NetworkTxBytesPerSec = networkInfo.TxBytesPerSec,
                 LoadAverage1Min = loadAvg.Load1,
                 LoadAverage5Min = loadAvg.Load5,
                 LoadAverage15Min = loadAvg.Load15
@@ -56,9 +59,10 @@ public class SystemMonitorService : ISystemMonitorService
 
             await _vpsRepository.AddSnapshotAsync(snapshot, cancellationToken);
             
-            _logger.LogDebug("Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB",
+            _logger.LogDebug("Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",
                 cpuUsage, memoryInfo.Used / 1024m / 1024m / 1024m, memoryInfo.Total / 1024m / 1024m / 1024m,
-                diskInfo.Used / 1024m / 1024m / 1024m, diskInfo.Total / 1024m / 1024m / 1024m);
+                diskInfo.Used / 1024m / 1024m / 1024m, diskInfo.Total / 1024m / 1024m / 1024m,
+                networkInfo.RxBytesPerSec / 1024m / 1024m, networkInfo.TxBytesPerSec / 1024m / 1024m);
         }
         catch (Exception ex)
         {
@@ -251,6 +255,80 @@ public class SystemMonitorService : ISystemMonitorService
             return new LoadAverage();
         }
     }
+    
+    private async Task<NetworkInfo> GetNetworkInfoAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var netDevPath = "/host/proc/net/dev";
+            if (!File.Exists(netDevPath))
+            {
+                _logger.LogWarning("/host/proc/net/dev not found, trying /proc/net/dev");
+                netDevPath = "/proc/net/dev";
+            }
+
+            var lines = await File.ReadAllLinesAsync(netDevPath, cancellationToken);
+            
+            long totalRxBytes = 0;
+            long totalTxBytes = 0;
+
+            foreach (var line in lines.Skip(2))
+            {
+                var parts = line.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 2) continue;
+
+                var interfaceName = parts[0].Trim();
+                if (interfaceName == "lo") continue;
+
+                var stats = parts[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (stats.Length < 9) continue;
+
+                if (long.TryParse(stats[0], out var rxBytes))
+                    totalRxBytes += rxBytes;
+                
+                if (long.TryParse(stats[8], out var txBytes))
+                    totalTxBytes += txBytes;
+            }
+
+            var currentStats = new NetworkStats
+            {
+                RxBytes = totalRxBytes,
+                TxBytes = totalTxBytes
+            };
+
+            var currentTime = DateTime.UtcNow;
+
+            if (_previousNetworkStats == null || _previousNetworkTime == null)
+            {
+                _previousNetworkStats = currentStats;
+                _previousNetworkTime = currentTime;
+                return new NetworkInfo();
+            }
+
+            var timeSpan = (currentTime - _previousNetworkTime.Value).TotalSeconds;
+            if (timeSpan <= 0)
+            {
+                return new NetworkInfo();
+            }
+
+            var rxBytesPerSec = (long)((currentStats.RxBytes - _previousNetworkStats.RxBytes) / timeSpan);
+            var txBytesPerSec = (long)((currentStats.TxBytes - _previousNetworkStats.TxBytes) / timeSpan);
+
+            _previousNetworkStats = currentStats;
+            _previousNetworkTime = currentTime;
+
+            return new NetworkInfo
+            {
+                RxBytesPerSec = Math.Max(0, rxBytesPerSec),
+                TxBytesPerSec = Math.Max(0, txBytesPerSec)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to read network info");
+            return new NetworkInfo();
+        }
+    }
 
     private record CpuStats
     {
@@ -282,5 +360,17 @@ public class SystemMonitorService : ISystemMonitorService
         public decimal Load1 { get; init; }
         public decimal Load5 { get; init; }
         public decimal Load15 { get; init; }
+    }
+    
+    private record NetworkStats
+    {
+        public long RxBytes { get; init; }
+        public long TxBytes { get; init; }
+    }
+
+    private record NetworkInfo
+    {
+        public long RxBytesPerSec { get; init; }
+        public long TxBytesPerSec { get; init; }
     }
 }

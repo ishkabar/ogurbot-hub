@@ -537,13 +537,19 @@
                 url: vpsData.apiBaseUrl + '/api/vps/websites',
                 method: 'POST',
                 contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + '@ViewBag.JwtToken'
+                },
                 data: JSON.stringify(data),
                 success: function (result) {
                     DevExpress.ui.notify("Website added successfully!", "success", 2000);
                     addWebsitePopup.hide();
 
-                    // Reload websites
-                    $.get(vpsData.apiBaseUrl + '/api/vps/websites', function (websites) {
+                    $.get(vpsData.apiBaseUrl + '/api/vps/websites', {
+                        headers: {
+                            'Authorization': 'Bearer ' + '@ViewBag.JwtToken'
+                        }
+                    }, function (websites) {
                         websitesGrid.option("dataSource", websites);
                         $("#websitesCount").text(websites.length);
                     });
@@ -561,13 +567,22 @@
                         $.ajax({
                             url: vpsData.apiBaseUrl + '/api/vps/websites/' + id,
                             method: 'DELETE',
+                            headers: {
+                                'Authorization': 'Bearer ' + '@ViewBag.JwtToken'
+                            },
                             success: function () {
                                 DevExpress.ui.notify("Website deleted successfully!", "success", 2000);
 
-                                // Reload websites
-                                $.get(vpsData.apiBaseUrl + '/api/vps/websites', function (websites) {
-                                    websitesGrid.option("dataSource", websites);
-                                    $("#websitesCount").text(websites.length);
+                                $.ajax({
+                                    url: vpsData.apiBaseUrl + '/api/vps/websites',
+                                    method: 'GET',
+                                    headers: {
+                                        'Authorization': 'Bearer ' + '@ViewBag.JwtToken'
+                                    },
+                                    success: function (websites) {
+                                        websitesGrid.option("dataSource", websites);
+                                        $("#websitesCount").text(websites.length);
+                                    }
                                 });
                             },
                             error: function () {

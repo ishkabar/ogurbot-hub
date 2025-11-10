@@ -46,10 +46,10 @@ public sealed class VpsController : BaseController
             var containers = await _hubApiClient.GetContainersAsync(AuthToken!);
             var websites = await _hubApiClient.GetWebsitesAsync(AuthToken!);
             var currentResources = await _hubApiClient.GetCurrentResourcesAsync(AuthToken!);
-            
-            var apiBaseUrl = _configuration["HubApi:BaseUrl"] 
-                ?? throw new InvalidOperationException("HubApi:BaseUrl not configured");
-            
+
+            var apiBaseUrl = _configuration["HubApi:BaseUrl"]
+                             ?? throw new InvalidOperationException("HubApi:BaseUrl not configured");
+
             var viewModel = new VpsMonitoringViewModel
             {
                 Title = "VPS Monitoring",
@@ -61,16 +61,18 @@ public sealed class VpsController : BaseController
                 Websites = websites ?? new List<VpsWebsiteDto>(),
                 ApiBaseUrl = apiBaseUrl
             };
-            
+
+            ViewBag.JwtToken = AuthToken;
+
             return View(viewModel);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load VPS monitoring data");
             TempData["ErrorMessage"] = "Unable to load VPS monitoring data. Please try again.";
-            
+
             var apiBaseUrl = _configuration["HubApi:BaseUrl"] ?? "http://localhost:5180";
-            
+
             var viewModel = new VpsMonitoringViewModel
             {
                 Title = "VPS Monitoring",
@@ -82,7 +84,9 @@ public sealed class VpsController : BaseController
                 Websites = new List<VpsWebsiteDto>(),
                 ApiBaseUrl = apiBaseUrl
             };
-            
+
+            ViewBag.JwtToken = AuthToken;
+
             return View(viewModel);
         }
     }
