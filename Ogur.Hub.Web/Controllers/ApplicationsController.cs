@@ -1,23 +1,27 @@
-// File: Ogur.Hub.Web/Controllers/ApplicationsController.cs
-// Project: Ogur.Hub.Web
+// File: Hub.Web/Controllers/ApplicationsController.cs
+// Project: Hub.Web
 // Namespace: Ogur.Hub.Web.Controllers
 
 using Microsoft.AspNetCore.Mvc;
+using Ogur.Hub.Web.Infrastructure;
+using Ogur.Hub.Web.Models.ViewModels;
 using Ogur.Hub.Web.Services;
 
 namespace Ogur.Hub.Web.Controllers;
 
 /// <summary>
-/// Controller for managing applications.
+/// Controller for managing applications
 /// </summary>
-public class ApplicationsController : Controller
+public sealed class ApplicationsController : BaseController
 {
     private readonly IHubApiClient _hubApiClient;
     private readonly ILogger<ApplicationsController> _logger;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ApplicationsController"/> class.
+    /// Initializes a new instance of the ApplicationsController
     /// </summary>
+    /// <param name="hubApiClient">Hub API client for backend communication</param>
+    /// <param name="logger">Logger instance</param>
     public ApplicationsController(IHubApiClient hubApiClient, ILogger<ApplicationsController> logger)
     {
         _hubApiClient = hubApiClient;
@@ -25,20 +29,15 @@ public class ApplicationsController : Controller
     }
 
     /// <summary>
-    /// Displays list of applications.
+    /// Displays list of applications
     /// </summary>
+    /// <returns>Applications view</returns>
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var token = HttpContext.Session.GetString("AuthToken");
-        if (string.IsNullOrEmpty(token))
-        {
-            return RedirectToAction("Login", "Account");
-        }
-
         try
         {
-            var applications = await _hubApiClient.GetApplicationsAsync(token);
+            var applications = await _hubApiClient.GetApplicationsAsync(AuthToken!);
             
             if (applications == null)
             {
@@ -47,64 +46,149 @@ public class ApplicationsController : Controller
                 return RedirectToAction("Login", "Account");
             }
 
-            ViewData["Title"] = "Applications";
-            return View(applications);
+            var viewModel = new ApplicationsViewModel
+            {
+                Title = "Applications",
+                Description = "Manage registered applications",
+                Username = Username,
+                IsAdmin = IsAdmin,
+                Applications = applications
+            };
+            
+            return View(viewModel);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving applications");
             TempData["ErrorMessage"] = "Unable to load applications. Please try again.";
-            return View(new List<ApplicationDto>());
+            
+            var viewModel = new ApplicationsViewModel
+            {
+                Title = "Applications",
+                Description = "Manage registered applications",
+                Username = Username,
+                IsAdmin = IsAdmin,
+                Applications = new List<ApplicationDto>()
+            };
+            
+            return View(viewModel);
         }
     }
 
     /// <summary>
-    /// Displays application details.
+    /// Displays application details
     /// </summary>
+    /// <param name="id">Application ID</param>
+    /// <returns>Application details view</returns>
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
-        var token = HttpContext.Session.GetString("AuthToken");
-        if (string.IsNullOrEmpty(token))
+        try
         {
-            return RedirectToAction("Login", "Account");
-        }
+            var applications = await _hubApiClient.GetApplicationsAsync(AuthToken!);
+            var application = applications?.FirstOrDefault(a => a.Id == id);
+            
+            if (application == null)
+            {
+                return NotFound();
+            }
 
-        ViewData["Title"] = "Application Details";
-        ViewBag.ApplicationId = id;
-        return View();
+            var viewModel = new ApplicationDetailsViewModel
+            {
+                Title = "Application Details",
+                Description = $"Details for {application.DisplayName}",
+                Username = Username,
+                IsAdmin = IsAdmin,
+                EntityId = id,
+                ControllerName = "Applications",
+                Application = new ApplicationViewDto
+                {
+                    Id = application.Id,
+                    Name = application.Name,
+                    DisplayName = application.DisplayName,
+                    Description = application.Description,
+                    CurrentVersion = application.CurrentVersion,
+                    IsActive = application.IsActive,
+                    CreatedAt = application.CreatedAt,
+                    ApiKey = "***hidden***"
+                },
+                LicensesCount = 0,
+                ActiveLicensesCount = 0,
+                DevicesCount = 0,
+                ConnectedDevicesCount = 0
+            };
+            
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving application details for id {Id}", id);
+            return NotFound();
+        }
     }
 
     /// <summary>
-    /// Displays create application form.
+    /// Displays create application form
     /// </summary>
+    /// <returns>Create application view</returns>
     [HttpGet]
     public IActionResult Create()
     {
-        var token = HttpContext.Session.GetString("AuthToken");
-        if (string.IsNullOrEmpty(token))
+        var viewModel = new ApplicationCreateViewModel
         {
-            return RedirectToAction("Login", "Account");
-        }
-
-        ViewData["Title"] = "New Application";
-        return View();
+            Title = "New Application",
+            Description = "Register a new application",
+            Username = Username,
+            IsAdmin = IsAdmin
+        };
+    
+        return View(viewModel);
     }
 
     /// <summary>
-    /// Displays edit application form.
+    /// Displays edit application form
     /// </summary>
+    /// <param name="id">Application ID</param>
+    /// <returns>Edit application view</returns>
     [HttpGet]
-    public IActionResult Edit(int id)
+    public async Task<IActionResult> Edit(int id)
     {
-        var token = HttpContext.Session.GetString("AuthToken");
-        if (string.IsNullOrEmpty(token))
+        try
         {
-            return RedirectToAction("Login", "Account");
-        }
+            var applications = await _hubApiClient.GetApplicationsAsync(AuthToken!);
+            var application = applications?.FirstOrDefault(a => a.Id == id);
+            
+            if (application == null)
+            {
+                return NotFound();
+            }
 
-        ViewData["Title"] = "Edit Application";
-        ViewBag.ApplicationId = id;
-        return View();
+            var viewModel = new ApplicationEditViewModel
+            {
+                Title = "Edit Application",
+                Description = $"Edit {application.DisplayName}",
+                Username = Username,
+                IsAdmin = IsAdmin,
+                EntityId = id,
+                ControllerName = "Applications",
+                Application = new ApplicationViewDto
+                {
+                    Id = application.Id,
+                    Name = application.Name,
+                    DisplayName = application.DisplayName,
+                    Description = application.Description,
+                    CurrentVersion = application.CurrentVersion,
+                    IsActive = application.IsActive,
+                    CreatedAt = application.CreatedAt
+                }
+            };
+            
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving application for edit, id {Id}", id);
+            return NotFound();
+        }
     }
 }

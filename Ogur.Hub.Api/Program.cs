@@ -19,7 +19,11 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration);
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -137,5 +141,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<DevicesHub>("/hubs/devices");
+app.MapHub<VpsHub>("/hubs/vps");
+
 
 app.Run();

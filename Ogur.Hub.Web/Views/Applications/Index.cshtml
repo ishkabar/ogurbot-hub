@@ -1,227 +1,349 @@
+@model ApplicationsViewModel
 @{
-    ViewData["Title"] = "Applications";
+ViewData["Title"] = Model.Title;
 }
 
-<div class="container-fluid">
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Applications Management</h2>
-                    <p class="text-muted">Manage all registered applications</p>
-                </div>
-                <div>
-                    <a asp-action="Create" class="btn btn-primary">
-                        <i class="dx-icon-plus"></i> New Application
-                    </a>
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>@Model.Title</h2>
+                <p class="text-muted">@Model.Description</p>
+            </div>
+            <div>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="dx-icon-plus"></i> New Application
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    @TempData["ErrorMessage"]
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+}
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Total Applications</h6>
+                        <h2 class="card-title mb-0">@Model.Applications.Count</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-box" style="font-size: 48px;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Active Applications</h6>
+                        <h2 class="card-title mb-0">@Model.Applications.Count(a => a.IsActive)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-check" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
         </div>
-    }
+    </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div id="applicationsGrid"></div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Inactive Applications</h6>
+                        <h2 class="card-title mb-0">@Model.Applications.Count(a => !a.IsActive)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-remove" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Versions</h6>
+                        <h2 class="card-title mb-0"
+                            style="font-size: 1.5rem;">@(Model.Applications.Any() ? Model.Applications.Select(a => a.CurrentVersion).Distinct().Count().ToString() : "0")</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-tags" style="font-size: 48px;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        $(function() {
-            // Sample data - TODO: Load from API
-            const applications = [
-                {
-                    id: 1,
-                    name: "Ogur.Sentinel",
-                    description: "Discord bot for game respawn timers",
-                    version: "2.1.5",
-                    isActive: true,
-                    createdAt: new Date(2024, 0, 15),
-                    licensesCount: 145,
-                    devicesCount: 87
-                },
-                {
-                    id: 2,
-                    name: "Monitor.App",
-                    description: "System monitoring application",
-                    version: "1.3.2",
-                    isActive: true,
-                    createdAt: new Date(2024, 3, 22),
-                    licensesCount: 67,
-                    devicesCount: 42
-                },
-                {
-                    id: 3,
-                    name: "DataSync.Tool",
-                    description: "Database synchronization utility",
-                    version: "3.0.1",
-                    isActive: false,
-                    createdAt: new Date(2023, 11, 5),
-                    licensesCount: 23,
-                    devicesCount: 8
-                }
-            ];
+<!-- Applications Grid Card -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">All Applications</h5>
+            </div>
+            <div class="card-body">
+                <div id="applicationsGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
-            $("#applicationsGrid").dxDataGrid({
+<!-- Details Popup -->
+<div id="detailsPopup"></div>
+
+<!-- Edit Popup -->
+<div id="editPopup"></div>
+
+@section Scripts {
+<script>
+    let detailsPopup;
+    let editPopup;
+    let applicationsGrid;
+    let pendingDetailsData = null;
+    let pendingEditData = null;
+    const applications = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Applications));
+
+    $(function() {
+        console.log("Applications loaded:", applications.length);
+
+        detailsPopup = $("#detailsPopup").dxPopup({
+            width: 900,
+            height: "auto",
+            maxHeight: "90vh",
+            showTitle: true,
+            title: "Application Details",
+            showCloseButton: true,
+            contentTemplate: function(container) {
+                return $("<div>").attr("id", "detailsContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingDetailsData) {
+                    renderDetails(pendingDetailsData);
+                    pendingDetailsData = null;
+                }
+            }
+        }).dxPopup("instance");
+
+        editPopup = $("#editPopup").dxPopup({
+            width: 700,
+            height: "auto",
+            maxHeight: "90vh",
+            showTitle: true,
+            title: "Edit Application",
+            showCloseButton: true,
+            contentTemplate: function(container) {
+                return $("<div>").attr("id", "editContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingEditData) {
+                    renderEdit(pendingEditData);
+                    pendingEditData = null;
+                }
+            }
+        }).dxPopup("instance");
+
+        console.log("Popups initialized");
+
+        setTimeout(function() {
+            applicationsGrid = $("#applicationsGrid").dxDataGrid({
                 dataSource: applications,
                 showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: true,
                 hoverStateEnabled: true,
                 columnAutoWidth: true,
-                filterRow: {
-                    visible: true
-                },
-                headerFilter: {
-                    visible: true
-                },
-                searchPanel: {
-                    visible: true,
-                    width: 240,
-                    placeholder: "Search applications..."
-                },
-                paging: {
-                    pageSize: 15
-                },
-                pager: {
-                    visible: true,
-                    showPageSizeSelector: true,
-                    allowedPageSizes: [10, 15, 25, 50],
-                    showInfo: true
-                },
+                noDataText: "No applications found",
+                filterRow: { visible: true },
+                headerFilter: { visible: true },
+                searchPanel: { visible: true, width: 240, placeholder: "Search applications..." },
+                paging: { pageSize: 15 },
+                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
+                export: { enabled: true, fileName: "applications" },
                 columns: [
+                    { dataField: "Name", caption: "Name", width: 200 },
+                    { dataField: "DisplayName", caption: "Display Name", width: 250 },
+                    { dataField: "CurrentVersion", caption: "Version", width: 120, alignment: "center" },
                     {
-                        dataField: "id",
-                        caption: "ID",
-                        width: 70,
-                        alignment: "center"
-                    },
-                    {
-                        dataField: "name",
-                        caption: "Application Name",
-                        cellTemplate: function(container, options) {
-                            $("<a>")
-                                .attr("href", "/Applications/Details/" + options.data.id)
-                                .addClass("fw-bold text-primary")
-                                .text(options.value)
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "description",
-                        caption: "Description"
-                    },
-                    {
-                        dataField: "version",
-                        caption: "Version",
-                        width: 100,
-                        alignment: "center"
-                    },
-                    {
-                        dataField: "isActive",
+                        dataField: "IsActive",
                         caption: "Status",
-                        width: 100,
+                        width: 110,
                         alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const badgeClass = options.value ? "bg-success" : "bg-secondary";
+                        cellTemplate: function (container, options) {
+                            const badgeClass = options.value ? "badge bg-success" : "badge bg-secondary";
                             const text = options.value ? "Active" : "Inactive";
-                            $("<span>")
-                                .addClass("badge " + badgeClass)
-                                .text(text)
-                                .appendTo(container);
+                            $("<span>").addClass(badgeClass).text(text).appendTo(container);
                         }
                     },
-                    {
-                        dataField: "licensesCount",
-                        caption: "Licenses",
-                        width: 100,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            $("<span>")
-                                .addClass("badge bg-info")
-                                .text(options.value)
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "devicesCount",
-                        caption: "Devices",
-                        width: 100,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            $("<span>")
-                                .addClass("badge bg-primary")
-                                .text(options.value)
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "createdAt",
-                        caption: "Created",
-                        dataType: "date",
-                        format: "dd/MM/yyyy",
-                        width: 120
-                    },
+                    { dataField: "CreatedAt", caption: "Created", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                    { dataField: "Description", caption: "Description" },
                     {
                         type: "buttons",
-                        width: 150,
+                        width: 120,
                         buttons: [
                             {
                                 hint: "View Details",
                                 icon: "info",
-                                onClick: function(e) {
-                                    window.location.href = "/Applications/Details/" + e.row.data.id;
+                                onClick: function (e) {
+                                    showDetails(e.row.data);
                                 }
                             },
                             {
                                 hint: "Edit",
                                 icon: "edit",
-                                onClick: function(e) {
-                                    window.location.href = "/Applications/Edit/" + e.row.data.id;
-                                }
-                            },
-                            {
-                                hint: "Delete",
-                                icon: "trash",
-                                onClick: function(e) {
-                                    if (confirm("Are you sure you want to delete this application?")) {
-                                        deleteApplication(e.row.data.id);
-                                    }
+                                onClick: function (e) {
+                                    showEdit(e.row.data);
                                 }
                             }
                         ]
                     }
                 ],
-                onRowDblClick: function(e) {
-                    window.location.href = "/Applications/Details/" + e.data.id;
+                onContentReady: function() {
+                    console.log("Grid rendered with " + applications.length + " items");
                 }
-            });
+            }).dxDataGrid("instance");
+        }, 200);
+    });
+
+    function showDetails(app) {
+        pendingDetailsData = app;
+        detailsPopup.option("title", "Application Details: " + app.DisplayName);
+        detailsPopup.show();
+    }
+
+    function renderDetails(app) {
+        const createdDate = new Date(app.CreatedAt).toLocaleString('pl-PL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
 
-        function deleteApplication(id) {
-            // Call API endpoint
-            ApiClient.delete(`/applications/${id}`)
-                .then(() => {
-                    Utils.showSuccess("Application deleted successfully!");
-                    location.reload();
-                })
-                .catch(error => {
-                    Utils.showError("Failed to delete application");
-                    console.error(error);
-                });
+        const content = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="dx-icon-info"></i> Application Information</h6>
+                    <table class="table table-sm table-borderless">
+                        <tr><th width="40%">Name:</th><td><code>${app.Name}</code></td></tr>
+                        <tr><th>Display Name:</th><td>${app.DisplayName}</td></tr>
+                        <tr><th>Version:</th><td><span class="badge bg-info">${app.CurrentVersion}</span></td></tr>
+                        <tr><th>Status:</th><td><span class="badge bg-${app.IsActive ? 'success' : 'secondary'}">${app.IsActive ? 'Active' : 'Inactive'}</span></td></tr>
+                        <tr><th>Created:</th><td>${createdDate}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="dx-icon-doc"></i> Description</h6>
+                    <p class="text-muted">${app.Description || 'No description provided.'}</p>
+                    <hr>
+                    <button class="btn btn-primary btn-sm" onclick="closeDetailsAndEdit(${app.Id})">
+                        <i class="dx-icon-edit"></i> Edit Application
+                    </button>
+                </div>
+            </div>
+        `;
+
+        $("#detailsContent").html(content);
+    }
+
+    function showEdit(app) {
+        pendingEditData = app;
+        editPopup.option("title", "Edit Application: " + app.DisplayName);
+        editPopup.show();
+    }
+
+    function renderEdit(app) {
+        const content = `
+            <form id="editForm">
+                <input type="hidden" id="editAppId" value="${app.Id}" />
+                
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" value="${app.Name}" readonly />
+                    <small class="text-muted">Application name cannot be changed</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="editDisplayName" value="${app.DisplayName}" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="editDescription" rows="3">${app.Description || ''}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Current Version <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="editVersion" value="${app.CurrentVersion}" required />
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="editIsActive" ${app.IsActive ? 'checked' : ''} />
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" onclick="saveApplication()">
+                        <i class="dx-icon-save"></i> Save Changes
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="editPopup.hide()">
+                        <i class="dx-icon-close"></i> Cancel
+                    </button>
+                </div>
+            </form>
+        `;
+
+        $("#editContent").html(content);
+    }
+
+    function closeDetailsAndEdit(appId) {
+        detailsPopup.hide();
+        const app = applications.find(a => a.Id === appId);
+        if (app) {
+            showEdit(app);
         }
-    </script>
+    }
+
+    function saveApplication() {
+        const data = {
+            id: parseInt($('#editAppId').val()),
+            displayName: $('#editDisplayName').val(),
+            description: $('#editDescription').val(),
+            currentVersion: $('#editVersion').val(),
+            isActive: $('#editIsActive').is(':checked')
+        };
+
+        if (!data.displayName || !data.currentVersion) {
+            DevExpress.ui.notify("Please fill all required fields", "error", 3000);
+            return;
+        }
+
+        DevExpress.ui.notify("Update functionality not yet implemented", "info", 2000);
+        editPopup.hide();
+    }
+</script>
 }

@@ -12,7 +12,7 @@ namespace Ogur.Hub.Infrastructure.Persistence;
 /// <summary>
 /// Entity Framework Core database context for Ogur Hub application.
 /// </summary>
-public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
+public partial class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ApplicationDbContext"/> class.
@@ -56,5 +56,9 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
         base.OnModelCreating(modelBuilder);
         
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        
+        OnModelCreatingPartial(modelBuilder);
     }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

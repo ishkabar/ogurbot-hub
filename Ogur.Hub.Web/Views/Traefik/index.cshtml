@@ -1,0 +1,81 @@
+﻿@* File: Hub.Web/Views/Traefik/Index.cshtml *@
+@model TraefikViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<style>
+    /* Remove all padding/margins from main content area */
+    .main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Full height iframe - account only for navbar */
+    #traefikFrame {
+        position: fixed;
+        top: 56px; /* Navbar height - adjust if different */
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: calc(100vh - 56px);
+        border: none;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+
+<!-- Traefik Dashboard Iframe - Full Screen -->
+<iframe 
+    id="traefikFrame"
+    title="Traefik Dashboard">
+</iframe>
+
+@section Scripts {
+    <script>
+        $(function() {
+            const traefikIframe = document.getElementById('traefikFrame');
+
+            // Get current theme and load iframe with theme parameter
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme') || 'dark';
+            traefikIframe.src = '/Traefik/Proxy/?theme=' + currentTheme;
+
+            // Watch for theme changes on parent
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-bs-theme') {
+                        const newTheme = document.documentElement.getAttribute('data-bs-theme') || 'dark';
+                        try {
+                            traefikIframe.contentWindow.postMessage({
+                                type: 'THEME_CHANGE',
+                                theme: newTheme
+                            }, '*');
+                        } catch (e) {
+                            console.error('Failed to send theme to iframe:', e);
+                        }
+                    }
+                });
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-bs-theme']
+            });
+
+            $('#traefikFrame').on('error', function() {
+                $(this).replaceWith(`
+                    <div style="padding: 20px; text-align: center; margin-top: 100px;">
+                        <div class="alert alert-danger" style="max-width: 600px; margin: 0 auto;">
+                            <h4><i class="dx-icon-warning"></i> Failed to load Traefik dashboard</h4>
+                            <p>Please check that Traefik is running and accessible.</p>
+                            <a href="/Traefik/Proxy/" target="_blank" class="btn btn-primary mt-2">
+                                <i class="dx-icon-export"></i> Try opening in new tab
+                            </a>
+                        </div>
+                    </div>
+                `);
+            });
+        });
+    </script>
+}

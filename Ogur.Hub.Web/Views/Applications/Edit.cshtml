@@ -1,0 +1,118 @@
+@* File: Hub.Web/Views/Applications/Edit.cshtml *@
+@model ApplicationEditViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>@Model.Title</h2>
+                <p class="text-muted">@Model.Description</p>
+            </div>
+            <div>
+                <a asp-controller="@Model.ControllerName" asp-action="Index" class="btn btn-secondary">
+                    <i class="dx-icon-back"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="dx-icon-edit"></i> Edit Application</h5>
+            </div>
+            <div class="card-body">
+                <form id="editForm">
+                    <input type="hidden" id="applicationId" value="@Model.Application.Id" />
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" value="@Model.Application.Name" readonly />
+                        <small class="text-muted">Application name cannot be changed</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="displayName" class="form-label">Display Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="displayName" value="@Model.Application.DisplayName" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" rows="3">@Model.Application.Description</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="currentVersion" class="form-label">Current Version <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="currentVersion" value="@Model.Application.CurrentVersion" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="isActive" @(Model.Application.IsActive ? "checked" : "") />
+                            <label class="form-check-label" for="isActive">
+                                Active
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary" onclick="saveApplication()">
+                            <i class="dx-icon-save"></i> Save Changes
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Application.Id" class="btn btn-secondary">
+                            <i class="dx-icon-close"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="dx-icon-info"></i> Information</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    <i class="dx-icon-clock"></i> Created: @Model.Application.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                </p>
+                <hr />
+                <h6>Required Fields</h6>
+                <ul class="small">
+                    <li>Display Name</li>
+                    <li>Current Version</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function saveApplication() {
+            const id = $('#applicationId').val();
+            const data = {
+                id: parseInt(id),
+                displayName: $('#displayName').val(),
+                description: $('#description').val(),
+                currentVersion: $('#currentVersion').val(),
+                isActive: $('#isActive').is(':checked')
+            };
+
+            if (!data.displayName || !data.currentVersion) {
+                DevExpress.ui.notify("Please fill all required fields", "error", 3000);
+                return;
+            }
+
+            DevExpress.ui.notify("Update functionality not yet implemented", "info", 2000);
+            // TODO: Implement API call
+            // $.ajax({ url: '/Applications/Update', type: 'POST', ... });
+        }
+    </script>
+}

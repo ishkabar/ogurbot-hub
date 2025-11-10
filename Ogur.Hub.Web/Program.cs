@@ -1,5 +1,5 @@
-// File: Ogur.Hub.Web/Program.cs
-// Project: Ogur.Hub.Web
+// File: Hub.Web/Program.cs
+// Project: Hub.Web
 // Namespace: N/A
 
 using Ogur.Hub.Web.Middleware;
@@ -18,6 +18,9 @@ builder.Services.AddHttpClient<IHubApiClient, HubApiClient>(client =>
     client.BaseAddress = new Uri(hubApiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
 });
+
+// Add HttpClient for Traefik proxy
+builder.Services.AddHttpClient();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

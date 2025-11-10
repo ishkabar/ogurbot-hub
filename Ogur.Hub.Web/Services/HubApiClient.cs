@@ -1,10 +1,11 @@
-﻿// File: Ogur.Hub.Web/Services/HubApiClient.cs
-// Project: Ogur.Hub.Web
+﻿// File: Hub.Web/Services/HubApiClient.cs
+// Project: Hub.Web
 // Namespace: Ogur.Hub.Web.Services
 
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Ogur.Hub.Web.Models.ViewModels;
 
 namespace Ogur.Hub.Web.Services;
 
@@ -122,6 +123,29 @@ public sealed class HubApiClient : IHubApiClient
         }
     }
 
+    public async Task<List<UserDto>?> GetUsersAsync(string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync("/api/users");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get users failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<UserDto>>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting users");
+            return null;
+        }
+    }
+
     public async Task<LicenseDto?> CreateLicenseAsync(string token, CreateLicenseRequest request)
     {
         try
@@ -141,6 +165,146 @@ public sealed class HubApiClient : IHubApiClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating license");
+            return null;
+        }
+    }
+    
+    public async Task<List<VpsContainerDto>?> GetContainersAsync(string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync("/api/vps/containers");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get containers failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<List<VpsContainerDto>>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting containers");
+            return null;
+        }
+    }
+
+    public async Task<List<VpsWebsiteDto>?> GetWebsitesAsync(string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync("/api/vps/websites");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get websites failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<List<VpsWebsiteDto>>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting websites");
+            return null;
+        }
+    }
+
+    public async Task<VpsResourceDto?> GetCurrentResourcesAsync(string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync("/api/vps/resources/current");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get current resources failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<VpsResourceDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting current resources");
+            return null;
+        }
+    }
+
+    public async Task<List<VpsResourceDto>?> GetResourceHistoryAsync(string token, DateTime from, DateTime to)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync($"/api/vps/resources/history?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get resource history failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<List<VpsResourceDto>>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting resource history");
+            return null;
+        }
+    }
+
+    public async Task<bool> RefreshContainersAsync(string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PostAsync("/api/vps/containers/refresh", null);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing containers");
+            return false;
+        }
+    }
+
+    public async Task<bool> RefreshWebsitesAsync(string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PostAsync("/api/vps/websites/refresh", null);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing websites");
+            return false;
+        }
+    }
+    
+    public async Task<DashboardStatsDto?> GetDashboardStatsAsync(string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync("/api/dashboard/stats");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get dashboard stats failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<DashboardStatsDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting dashboard stats");
             return null;
         }
     }

@@ -1,8 +1,20 @@
-﻿// File: Ogur.Hub.Application/DependencyInjection.cs
-// Project: Ogur.Hub.Application
+﻿// File: Hub.Application/DependencyInjection.cs
+// Project: Hub.Application
 // Namespace: Ogur.Hub.Application
 
 using Microsoft.Extensions.DependencyInjection;
+using Ogur.Hub.Application.Commands.ApplicationsCommands;
+using Ogur.Hub.Application.Commands.DevicesCommands;
+using Ogur.Hub.Application.Commands.LicensesCommands;
+using Ogur.Hub.Application.Commands.TelemetryCommands;
+using Ogur.Hub.Application.Commands.UsersCommands;
+using Ogur.Hub.Application.Queries.Applications;
+using Ogur.Hub.Application.Queries.Dashboard;
+using Ogur.Hub.Application.Queries.Devices;
+using Ogur.Hub.Application.Queries.Licenses;
+using Ogur.Hub.Application.Queries.Telemetry;
+using Ogur.Hub.Application.Queries.Updates;
+using Ogur.Hub.Application.Queries.Users;
 
 namespace Ogur.Hub.Application;
 
@@ -22,6 +34,27 @@ public static class DependencyInjection
         {
             cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
         });
+
+        // Register Query Handlers
+        services.AddScoped<GetApplicationsQueryHandler>();
+        services.AddScoped<GetDashboardStatsQueryHandler>();
+        services.AddScoped<GetDevicesQueryHandler>();
+        services.AddScoped<GetLicensesQueryHandler>();
+        services.AddScoped<GetTelemetryQueryHandler>();
+        services.AddScoped<CheckForUpdatesQueryHandler>();
+        services.AddScoped<GetUsersQueryHandler>();
+        services.AddScoped<GetUserByIdQueryHandler>();
+
+        // Register Command Handlers
+        services.AddScoped<CreateApplicationCommandHandler>();
+        services.AddScoped<UpdateApplicationCommandHandler>();
+        services.AddScoped<BlockDeviceCommandHandler>();
+        services.AddScoped<SendDeviceCommandCommandHandler>();
+        services.AddScoped<CreateLicenseCommandHandler>();
+        services.AddScoped<RevokeLicenseCommandHandler>();
+        services.AddScoped<ValidateLicenseCommandHandler>();
+        services.AddScoped<ReceiveTelemetryCommandHandler>();
+        services.AddScoped<UpdateUserCommandHandler>();
 
         return services;
     }

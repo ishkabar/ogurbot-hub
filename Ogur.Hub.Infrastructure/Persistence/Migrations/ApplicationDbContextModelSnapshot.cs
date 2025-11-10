@@ -459,6 +459,168 @@ namespace Ogur.Hub.Infrastructure.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("Ogur.Hub.Domain.Entities.VpsContainer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContainerId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<decimal>("CpuUsagePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("LastUpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("MemoryLimitBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MemoryUsageBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<long>("NetworkRxBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("NetworkTxBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainerId");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("VpsContainers", (string)null);
+                });
+
+            modelBuilder.Entity("Ogur.Hub.Domain.Entities.VpsResourceSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CpuUsagePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<long>("DiskTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("DiskUsedBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("LoadAverage15Min")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("LoadAverage1Min")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("LoadAverage5Min")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<long>("MemoryTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MemoryUsedBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("NetworkRxBytesPerSec")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("NetworkTxBytesPerSec")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Timestamp");
+
+                    b.ToTable("VpsResourceSnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("Ogur.Hub.Domain.Entities.VpsWebsite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ContainerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("LastCheckedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("LastResponseTimeMs")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LastStatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<bool>("SslEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("SslExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainerId");
+
+                    b.HasIndex("Domain")
+                        .IsUnique();
+
+                    b.ToTable("VpsWebsites", (string)null);
+                });
+
             modelBuilder.Entity("Ogur.Hub.Domain.Entities.ApplicationVersion", b =>
                 {
                     b.HasOne("Ogur.Hub.Domain.Entities.Application", "Application")
@@ -540,6 +702,16 @@ namespace Ogur.Hub.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Device");
+                });
+
+            modelBuilder.Entity("Ogur.Hub.Domain.Entities.VpsWebsite", b =>
+                {
+                    b.HasOne("Ogur.Hub.Domain.Entities.VpsContainer", "Container")
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Container");
                 });
 
             modelBuilder.Entity("Ogur.Hub.Domain.Entities.Device", b =>

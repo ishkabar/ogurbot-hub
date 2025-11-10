@@ -1,0 +1,373 @@
+@* File: Hub.Web/Views/Vps/Index.cshtml *@
+@model VpsMonitoringViewModel
+@{
+ViewData["Title"] = Model.Title;
+}
+
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>@Model.Title</h2>
+                <p class="text-muted">@Model.Description</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="refreshContainers()">
+                    <i class="dx-icon-refresh"></i> Refresh Containers
+                </button>
+                <button type="button" class="btn btn-primary" onclick="refreshWebsites()">
+                    <i class="dx-icon-refresh"></i> Refresh Websites
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resource Stats Cards -->
+@if (Model.CurrentResources != null)
+{
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">CPU Usage</h6>
+                        <h2 class="card-title mb-0" id="cpuUsage">@Model.CurrentResources.CpuUsagePercent.ToString("F1")%</h2>
+                        <small id="cpuLoad">Load: @Model.CurrentResources.LoadAverage1Min.ToString("F2")</small>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-runner" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Memory</h6>
+                        <h2 class="card-title mb-0" id="memoryUsage">@Model.CurrentResources.MemoryUsagePercent.ToString("F1")%</h2>
+                        <small id="memoryDetails">@Model.CurrentResources.MemoryUsedGb.ToString("F1") GB / @Model.CurrentResources.MemoryTotalGb.ToString("F1") GB</small>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-chart" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Disk</h6>
+                        <h2 class="card-title mb-0" id="diskUsage">@Model.CurrentResources.DiskUsagePercent.ToString("F1")%</h2>
+                        <small id="diskDetails">@Model.CurrentResources.DiskUsedGb.ToString("F1") GB / @Model.CurrentResources.DiskTotalGb.ToString("F1") GB</small>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-box" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Network</h6>
+                        <h2 class="card-title mb-0" id="networkRx">@Model.CurrentResources.NetworkRxMbps.ToString("F1") Mbps</h2>
+                        <small id="networkTx">TX: @Model.CurrentResources.NetworkTxMbps.ToString("F1") Mbps</small>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-globe" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+}
+else
+{
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="dx-icon-info"></i> Loading VPS resource data...
+        </div>
+    </div>
+</div>
+}
+
+<!-- Containers Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Docker Containers (<span id="containersCount">@Model.Containers.Count</span>)</h5>
+            </div>
+            <div class="card-body">
+                <div id="containersGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Websites Card -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Monitored Websites (<span id="websitesCount">@Model.Websites.Count</span>)</h5>
+            </div>
+            <div class="card-body">
+                <div id="websitesGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* File: Hub.Web/Views/Vps/Index.cshtml *@
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+<script>
+    let containersGrid;
+    let websitesGrid;
+
+    // Initialize with server-side data - PascalCase!
+    const vpsData = {
+        containers: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Containers)),
+        websites: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Websites)),
+        apiBaseUrl: "@Model.ApiBaseUrl"
+    };
+
+    console.log("Initial VPS data loaded:", {
+        containersCount: vpsData.containers.length,
+        websitesCount: vpsData.websites.length
+    });
+
+    $(function() {
+        // Initialize grids SYNCHRONOUSLY with data from server
+        initializeContainersGrid();
+        initializeWebsitesGrid();
+
+        // Setup SignalR after grids are ready
+        setupSignalR();
+    });
+
+    function initializeContainersGrid() {
+        console.log("Initializing containers grid with", vpsData.containers.length, "items");
+
+        containersGrid = $("#containersGrid").dxDataGrid({
+            dataSource: vpsData.containers,
+            showBorders: true,
+            showRowLines: true,
+            rowAlternationEnabled: true,
+            columnAutoWidth: true,
+            noDataText: "No containers found",
+            columns: [
+                { dataField: "Name", caption: "Name", width: 200 },  // ✅ PascalCase
+                { dataField: "Image", caption: "Image", width: 250 },  // ✅ PascalCase
+                { dataField: "State", caption: "State", width: 100 },  // ✅ PascalCase
+                { dataField: "Status", caption: "Status", width: 150 },  // ✅ PascalCase
+                {
+                    dataField: "CpuUsagePercent",  // ✅ PascalCase
+                    caption: "CPU %",
+                    width: 100,
+                    format: { type: "fixedPoint", precision: 1 }
+                },
+                {
+                    dataField: "MemoryUsagePercent",  // ✅ PascalCase
+                    caption: "Memory %",
+                    width: 100,
+                    format: { type: "fixedPoint", precision: 1 }
+                },
+                {
+                    dataField: "MemoryUsageMb",  // ✅ PascalCase
+                    caption: "Memory (MB)",
+                    width: 120,
+                    format: { type: "fixedPoint", precision: 0 }
+                },
+                {
+                    dataField: "LastUpdatedAt",  // ✅ PascalCase
+                    caption: "Last Updated",
+                    dataType: "datetime",
+                    format: "dd/MM/yyyy HH:mm:ss",
+                    width: 180
+                }
+            ],
+            paging: { pageSize: 20 },
+            searchPanel: { visible: true },
+            filterRow: { visible: true }
+        }).dxDataGrid("instance");
+
+        console.log("Containers grid initialized with", containersGrid.totalCount(), "rows");
+    }
+
+    function initializeWebsitesGrid() {
+        console.log("Initializing websites grid with", vpsData.websites.length, "items");
+
+        websitesGrid = $("#websitesGrid").dxDataGrid({
+            dataSource: vpsData.websites,
+            showBorders: true,
+            showRowLines: true,
+            rowAlternationEnabled: true,
+            columnAutoWidth: true,
+            noDataText: "No websites found",
+            columns: [
+                { dataField: "Domain", caption: "Domain", width: 250 },  // ✅ PascalCase
+                { dataField: "ServiceName", caption: "Service", width: 150 },  // ✅ PascalCase
+                { dataField: "ContainerName", caption: "Container", width: 150 },  // ✅ PascalCase
+                {
+                    dataField: "IsActive",  // ✅ PascalCase
+                    caption: "Status",
+                    width: 100,
+                    cellTemplate: function(container, options) {
+                        const status = options.value ?
+                            '<span class="badge bg-success">Active</span>' :
+                            '<span class="badge bg-danger">Down</span>';
+                        container.append(status);
+                    }
+                },
+                {
+                    dataField: "SslEnabled",  // ✅ PascalCase
+                    caption: "SSL",
+                    width: 80,
+                    cellTemplate: function(container, options) {
+                        const ssl = options.value ?
+                            '<span class="badge bg-success">Yes</span>' :
+                            '<span class="badge bg-secondary">No</span>';
+                        container.append(ssl);
+                    }
+                },
+                {
+                    dataField: "LastStatusCode",  // ✅ PascalCase
+                    caption: "HTTP Status",
+                    width: 120
+                },
+                {
+                    dataField: "LastResponseTimeMs",  // ✅ PascalCase
+                    caption: "Response (ms)",
+                    width: 130
+                },
+                {
+                    dataField: "LastCheckedAt",  // ✅ PascalCase
+                    caption: "Last Checked",
+                    dataType: "datetime",
+                    format: "dd/MM/yyyy HH:mm:ss",
+                    width: 180
+                }
+            ],
+            paging: { pageSize: 20 },
+            searchPanel: { visible: true },
+            filterRow: { visible: true }
+        }).dxDataGrid("instance");
+
+        console.log("Websites grid initialized with", websitesGrid.totalCount(), "rows");
+    }
+
+    function setupSignalR() {
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(vpsData.apiBaseUrl + "/hubs/vps")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("VpsStatsUpdated", function(data) {
+            console.log("VPS stats updated via SignalR", data);
+
+            // Update containers grid - PascalCase check
+            if (data.Containers && Array.isArray(data.Containers) && data.Containers.length > 0) {
+                console.log("Updating containers:", data.Containers.length);
+                containersGrid.option("dataSource", data.Containers);
+                $("#containersCount").text(data.Containers.length);
+            }
+
+            // Update websites grid - PascalCase check
+            if (data.Websites && Array.isArray(data.Websites) && data.Websites.length > 0) {
+                console.log("Updating websites:", data.Websites.length);
+                websitesGrid.option("dataSource", data.Websites);
+                $("#websitesCount").text(data.Websites.length);
+            }
+
+            // Update resource cards - PascalCase
+            if (data.Resources) {
+                console.log("Updating resources");
+                updateResourceCards(data.Resources);
+            }
+        });
+
+        connection.onreconnecting(() => {
+            console.log("VPS monitoring reconnecting...");
+        });
+
+        connection.onreconnected(() => {
+            console.log("VPS monitoring reconnected");
+            connection.invoke("JoinMonitoring").catch(err => console.error("JoinMonitoring error:", err));
+        });
+
+        connection.start()
+            .then(() => {
+                console.log("VPS monitoring SignalR connected");
+                return connection.invoke("JoinMonitoring");
+            })
+            .then(() => {
+                console.log("Joined VPS monitoring group");
+            })
+            .catch(err => console.error("VPS monitoring connection error:", err));
+    }
+
+    function updateResourceCards(resources) {
+        // PascalCase properties
+        $("#cpuUsage").text(resources.CpuUsagePercent.toFixed(1) + "%");
+        $("#cpuLoad").text("Load: " + resources.LoadAverage1Min.toFixed(2));
+
+        $("#memoryUsage").text(resources.MemoryUsagePercent.toFixed(1) + "%");
+        $("#memoryDetails").text(
+            resources.MemoryUsedGb.toFixed(1) + " GB / " +
+            resources.MemoryTotalGb.toFixed(1) + " GB"
+        );
+
+        $("#diskUsage").text(resources.DiskUsagePercent.toFixed(1) + "%");
+        $("#diskDetails").text(
+            resources.DiskUsedGb.toFixed(1) + " GB / " +
+            resources.DiskTotalGb.toFixed(1) + " GB"
+        );
+
+        $("#networkRx").text(resources.NetworkRxMbps.toFixed(1) + " Mbps");
+        $("#networkTx").text("TX: " + resources.NetworkTxMbps.toFixed(1) + " Mbps");
+    }
+
+    function refreshContainers() {
+        $.post('@Url.Action("RefreshContainers", "Vps")', function(result) {
+            if (result.success) {
+                DevExpress.ui.notify("Containers refreshed successfully!", "success", 2000);
+            } else {
+                DevExpress.ui.notify("Failed to refresh containers", "error", 2000);
+            }
+        }).fail(function() {
+            DevExpress.ui.notify("Error refreshing containers", "error", 2000);
+        });
+    }
+
+    function refreshWebsites() {
+        $.post('@Url.Action("RefreshWebsites", "Vps")', function(result) {
+            if (result.success) {
+                DevExpress.ui.notify("Websites refreshed successfully!", "success", 2000);
+            } else {
+                DevExpress.ui.notify("Failed to refresh websites", "error", 2000);
+            }
+        }).fail(function() {
+            DevExpress.ui.notify("Error refreshing websites", "error", 2000);
+        });
+    }
+</script>
+}

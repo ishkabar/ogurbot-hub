@@ -1,191 +1,223 @@
+@model LicensesViewModel
 @{
-    ViewData["Title"] = "Licenses";
+ViewData["Title"] = Model.Title;
 }
 
-<div class="container-fluid">
-    <div class="row mb-3">
-        <div class="col-12">
-            <h2>License Management</h2>
-            <p class="text-muted">Monitor and manage application licenses</p>
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>@Model.Title</h2>
+                <p class="text-muted">@Model.Description</p>
+            </div>
+            <div>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="dx-icon-plus"></i> New License
+                </a>
+            </div>
         </div>
     </div>
+</div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h6>Active Licenses</h6>
-                    <h2 class="mb-0">145</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning">
-                <div class="card-body">
-                    <h6>Expiring Soon</h6>
-                    <h2 class="mb-0">12</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h6>Expired</h6>
-                    <h2 class="mb-0">23</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h6>Total</h6>
-                    <h2 class="mb-0">180</h2>
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Total Licenses</h6>
+                        <h2 class="card-title mb-0">@Model.Licenses.Count</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-key" style="font-size: 48px;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div id="licensesGrid"></div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Active Licenses</h6>
+                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 1)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-check" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Expired Licenses</h6>
+                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 2)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-close" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Devices Registered</h6>
+                        <h2 class="card-title mb-0">@Model.Licenses.Sum(l => l.RegisteredDevices)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-runner" style="font-size: 48px;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        $(function() {
-            const licenses = [
-                {
-                    id: 1,
-                    licenseKey: "OGUR-SENT-2024-ABC123",
-                    applicationName: "Ogur.Sentinel",
-                    deviceId: "DEV-001",
-                    issuedDate: new Date(2024, 0, 15),
-                    expiryDate: new Date(2025, 0, 15),
-                    status: "Active",
-                    usageCount: 1245
-                },
-                {
-                    id: 2,
-                    licenseKey: "OGUR-SENT-2024-DEF456",
-                    applicationName: "Ogur.Sentinel",
-                    deviceId: "DEV-002",
-                    issuedDate: new Date(2024, 2, 10),
-                    expiryDate: new Date(2024, 11, 20),
-                    status: "Expiring",
-                    usageCount: 892
-                },
-                {
-                    id: 3,
-                    licenseKey: "OGUR-MON-2023-GHI789",
-                    applicationName: "Monitor.App",
-                    deviceId: "DEV-003",
-                    issuedDate: new Date(2023, 6, 5),
-                    expiryDate: new Date(2024, 6, 5),
-                    status: "Expired",
-                    usageCount: 2341
-                }
-            ];
+<!-- Licenses Grid -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Licenses</h5>
+            </div>
+            <div class="card-body">
+                <div id="licensesGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
-            $("#licensesGrid").dxDataGrid({
+<!-- Details Popup -->
+<div id="detailsPopup"></div>
+
+<!-- Revoke Popup -->
+<div id="revokePopup"></div>
+
+@section Scripts {
+<script>
+    let detailsPopup;
+    let revokePopup;
+    let licensesGrid;
+    let pendingDetailsData = null;
+    let pendingRevokeData = null;
+    const licenses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Licenses));
+
+    $(function() {
+        console.log("Licenses loaded:", licenses.length);
+
+        detailsPopup = $("#detailsPopup").dxPopup({
+            width: 900,
+            height: "auto",
+            maxHeight: "90vh",
+            showTitle: true,
+            title: "License Details",
+            showCloseButton: true,
+            contentTemplate: function() {
+                return $("<div>").attr("id", "detailsContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingDetailsData) {
+                    renderDetails(pendingDetailsData);
+                    pendingDetailsData = null;
+                }
+            }
+        }).dxPopup("instance");
+
+        revokePopup = $("#revokePopup").dxPopup({
+            width: 500,
+            height: "auto",
+            showTitle: true,
+            title: "Revoke License",
+            showCloseButton: true,
+            contentTemplate: function() {
+                return $("<div>").attr("id", "revokeContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingRevokeData) {
+                    renderRevoke(pendingRevokeData);
+                    pendingRevokeData = null;
+                }
+            }
+        }).dxPopup("instance");
+
+        setTimeout(function() {
+            licensesGrid = $("#licensesGrid").dxDataGrid({
                 dataSource: licenses,
                 showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: true,
                 hoverStateEnabled: true,
                 columnAutoWidth: true,
-                filterRow: {
-                    visible: true
-                },
-                headerFilter: {
-                    visible: true
-                },
-                searchPanel: {
-                    visible: true,
-                    width: 240,
-                    placeholder: "Search licenses..."
-                },
-                paging: {
-                    pageSize: 15
-                },
-                pager: {
-                    visible: true,
-                    showPageSizeSelector: true,
-                    allowedPageSizes: [10, 15, 25, 50]
-                },
-                export: {
-                    enabled: true,
-                    fileName: "licenses"
-                },
+                noDataText: "No licenses found",
+                filterRow: { visible: true },
+                headerFilter: { visible: true },
+                searchPanel: { visible: true, width: 240, placeholder: "Search licenses..." },
+                paging: { pageSize: 15 },
+                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
+                export: { enabled: true, fileName: "licenses" },
                 columns: [
                     {
-                        dataField: "licenseKey",
+                        dataField: "LicenseKey",
                         caption: "License Key",
                         width: 220,
                         cellTemplate: function(container, options) {
                             $("<code>").text(options.value).appendTo(container);
                         }
                     },
+                    { dataField: "ApplicationName", caption: "Application", width: 180 },
                     {
-                        dataField: "applicationName",
-                        caption: "Application"
+                        dataField: "RegisteredDevices",
+                        caption: "Devices",
+                        width: 100,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const text = options.data.RegisteredDevices + " / " + options.data.MaxDevices;
+                            $("<span>").text(text).appendTo(container);
+                        }
                     },
+                    { dataField: "IssuedAt", caption: "Issued", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                    { dataField: "ExpiresAt", caption: "Expires", dataType: "date", format: "dd/MM/yyyy", width: 110 },
                     {
-                        dataField: "deviceId",
-                        caption: "Device ID",
-                        width: 120
-                    },
-                    {
-                        dataField: "issuedDate",
-                        caption: "Issued",
-                        dataType: "date",
-                        format: "dd/MM/yyyy",
-                        width: 110
-                    },
-                    {
-                        dataField: "expiryDate",
-                        caption: "Expires",
-                        dataType: "date",
-                        format: "dd/MM/yyyy",
-                        width: 110
-                    },
-                    {
-                        dataField: "status",
+                        dataField: "Status",
                         caption: "Status",
                         width: 110,
                         alignment: "center",
                         cellTemplate: function(container, options) {
                             let badgeClass = "bg-secondary";
-                            if (options.value === "Active") badgeClass = "bg-success";
-                            else if (options.value === "Expiring") badgeClass = "bg-warning";
-                            else if (options.value === "Expired") badgeClass = "bg-danger";
-                            
+                            let text = "Unknown";
+
+                            if (options.value === 1) {
+                                badgeClass = "bg-success";
+                                text = "Active";
+                            } else if (options.value === 2) {
+                                badgeClass = "bg-danger";
+                                text = "Expired";
+                            } else if (options.value === 3) {
+                                badgeClass = "bg-dark";
+                                text = "Revoked";
+                            }
+
                             $("<span>")
                                 .addClass("badge " + badgeClass)
-                                .text(options.value)
+                                .text(text)
                                 .appendTo(container);
                         }
                     },
-                    {
-                        dataField: "usageCount",
-                        caption: "Usage",
-                        width: 90,
-                        alignment: "center"
-                    },
+                    { dataField: "ValidationCount", caption: "Validations", width: 110, alignment: "center" },
                     {
                         type: "buttons",
                         width: 120,
@@ -194,38 +226,121 @@
                                 hint: "View Details",
                                 icon: "info",
                                 onClick: function(e) {
-                                    window.location.href = "/Licenses/Details/" + e.row.data.id;
+                                    showDetails(e.row.data);
                                 }
                             },
                             {
                                 hint: "Revoke",
                                 icon: "clear",
                                 visible: function(e) {
-                                    return e.row.data.status === "Active";
+                                    return e.row.data.Status === 1;
                                 },
                                 onClick: function(e) {
-                                    if (confirm("Are you sure you want to revoke this license?")) {
-                                        revokeLicense(e.row.data.id);
-                                    }
+                                    showRevoke(e.row.data);
                                 }
                             }
                         ]
                     }
-                ]
-            });
-        });
+                ],
+                onContentReady: function() {
+                    console.log("Grid rendered with " + licenses.length + " items");
+                }
+            }).dxDataGrid("instance");
+        }, 200);
+    });
 
-        function revokeLicense(id) {
-            // Call API endpoint
-            ApiClient.post(`/licenses/${id}/revoke`)
-                .then(() => {
-                    Utils.showSuccess("License revoked successfully!");
-                    location.reload();
-                })
-                .catch(error => {
-                    Utils.showError("Failed to revoke license");
-                    console.error(error);
-                });
+    function showDetails(license) {
+        pendingDetailsData = license;
+        detailsPopup.option("title", "License Details: " + license.LicenseKey);
+        detailsPopup.show();
+    }
+
+    function renderDetails(license) {
+        const issuedDate = new Date(license.IssuedAt).toLocaleDateString('pl-PL');
+        const expiresDate = new Date(license.ExpiresAt).toLocaleDateString('pl-PL');
+
+        let statusBadge = "bg-secondary";
+        let statusText = "Unknown";
+        if (license.Status === 1) {
+            statusBadge = "bg-success";
+            statusText = "Active";
+        } else if (license.Status === 2) {
+            statusBadge = "bg-danger";
+            statusText = "Expired";
+        } else if (license.Status === 3) {
+            statusBadge = "bg-dark";
+            statusText = "Revoked";
         }
-    </script>
+
+        const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3"><i class="dx-icon-key"></i> License Information</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr><th width="40%">License Key:</th><td><code>${license.LicenseKey}</code></td></tr>
+                            <tr><th>Application:</th><td>${license.ApplicationName}</td></tr>
+                            <tr><th>Status:</th><td><span class="badge ${statusBadge}">${statusText}</span></td></tr>
+                            <tr><th>Issued:</th><td>${issuedDate}</td></tr>
+                            <tr><th>Expires:</th><td>${expiresDate}</td></tr>
+                            <tr><th>Validations:</th><td>${license.ValidationCount}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="mb-3"><i class="dx-icon-runner"></i> Devices</h6>
+                        <p><strong>Registered:</strong> ${license.RegisteredDevices} / ${license.MaxDevices}</p>
+                        <hr>
+                        ${license.Status === 1 ? `
+                        <button class="btn btn-danger btn-sm" onclick="closeDetailsAndRevoke(${license.Id})">
+                            <i class="dx-icon-clear"></i> Revoke License
+                        </button>` : ''}
+                    </div>
+                </div>
+            `;
+
+        $("#detailsContent").html(content);
+    }
+
+    function showRevoke(license) {
+        pendingRevokeData = license;
+        revokePopup.option("title", "Revoke License");
+        revokePopup.show();
+    }
+
+    function renderRevoke(license) {
+        const content = `
+                <div class="alert alert-warning">
+                    <i class="dx-icon-warning"></i> <strong>Warning!</strong> This action cannot be undone.
+                </div>
+                <p>Are you sure you want to revoke this license?</p>
+                <table class="table table-sm">
+                    <tr><th>License Key:</th><td><code>${license.LicenseKey}</code></td></tr>
+                    <tr><th>Application:</th><td>${license.ApplicationName}</td></tr>
+                    <tr><th>Devices:</th><td>${license.RegisteredDevices} registered</td></tr>
+                </table>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="button" class="btn btn-danger" onclick="confirmRevoke(${license.Id})">
+                        <i class="dx-icon-clear"></i> Yes, Revoke License
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="revokePopup.hide()">
+                        Cancel
+                    </button>
+                </div>
+            `;
+
+        $("#revokeContent").html(content);
+    }
+
+    function closeDetailsAndRevoke(licenseId) {
+        detailsPopup.hide();
+        const license = licenses.find(l => l.Id === licenseId);
+        if (license) {
+            showRevoke(license);
+        }
+    }
+
+    function confirmRevoke(licenseId) {
+        DevExpress.ui.notify("Revoke functionality not yet implemented", "info", 2000);
+        revokePopup.hide();
+    }
+</script>
 }

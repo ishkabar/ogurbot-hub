@@ -1,280 +1,218 @@
+@model DevicesViewModel
 @{
-    ViewData["Title"] = "Devices";
+ViewData["Title"] = Model.Title;
 }
 
-<div class="container-fluid">
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Device Monitoring</h2>
-                    <p class="text-muted">Real-time device connection monitoring</p>
-                </div>
-                <div>
-                    <button id="refreshBtn" class="btn btn-primary">
-                        <i class="dx-icon-refresh"></i> Refresh
-                    </button>
-                </div>
-            </div>
-        </div>
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>@Model.Title</h2>
+        <p class="text-muted">@Model.Description</p>
     </div>
+</div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <!-- Connection Stats -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-success">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted">Online</h6>
-                            <h2 class="text-success mb-0" id="onlineCount">0</h2>
-                        </div>
-                        <div class="text-success" style="font-size: 2rem;">●</div>
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Total Devices</h6>
+                        <h2 class="card-title mb-0">@Model.Devices.Count</h2>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-secondary">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted">Offline</h6>
-                            <h2 class="text-secondary mb-0" id="offlineCount">0</h2>
-                        </div>
-                        <div class="text-secondary" style="font-size: 2rem;">●</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-warning">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted">Warning</h6>
-                            <h2 class="text-warning mb-0" id="warningCount">0</h2>
-                        </div>
-                        <div class="text-warning" style="font-size: 2rem;">⚠</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-info">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted">Total</h6>
-                            <h2 class="text-info mb-0" id="totalCount">0</h2>
-                        </div>
-                        <div class="text-info" style="font-size: 2rem;">📱</div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-runner" style="font-size: 48px;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div id="devicesGrid"></div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Online Devices</h6>
+                        <h2 class="card-title mb-0">@Model.Devices.Count(d => d.Status == 1)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-check" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Offline Devices</h6>
+                        <h2 class="card-title mb-0">@Model.Devices.Count(d => d.Status == 2)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-clock" style="font-size: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Blocked Devices</h6>
+                        <h2 class="card-title mb-0">@Model.Devices.Count(d => d.Status == 3)</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="dx-icon-close" style="font-size: 48px;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Devices Grid -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Devices</h5>
+            </div>
+            <div class="card-body">
+                <div id="devicesGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Popup -->
+<div id="detailsPopup"></div>
+
+<!-- Block Popup -->
+<div id="blockPopup"></div>
+
 @section Scripts {
-    <script>
-        $(function() {
-            const devices = [
-                {
-                    id: 1,
-                    deviceId: "DEV-001",
-                    applicationName: "Ogur.Sentinel",
-                    ipAddress: "192.168.1.100",
-                    hostname: "GAMING-PC-01",
-                    status: "Online",
-                    lastSeen: new Date(Date.now() - 120000),
-                    connectedAt: new Date(Date.now() - 7200000),
-                    cpuUsage: 45,
-                    memoryUsage: 62,
-                    uptime: "2h 15m"
-                },
-                {
-                    id: 2,
-                    deviceId: "DEV-002",
-                    applicationName: "Ogur.Sentinel",
-                    ipAddress: "192.168.1.101",
-                    hostname: "LAPTOP-USER",
-                    status: "Online",
-                    lastSeen: new Date(Date.now() - 30000),
-                    connectedAt: new Date(Date.now() - 3600000),
-                    cpuUsage: 23,
-                    memoryUsage: 38,
-                    uptime: "1h 05m"
-                },
-                {
-                    id: 3,
-                    deviceId: "DEV-003",
-                    applicationName: "Monitor.App",
-                    ipAddress: "192.168.1.102",
-                    hostname: "SERVER-01",
-                    status: "Warning",
-                    lastSeen: new Date(Date.now() - 600000),
-                    connectedAt: new Date(Date.now() - 86400000),
-                    cpuUsage: 89,
-                    memoryUsage: 94,
-                    uptime: "24h 12m"
-                },
-                {
-                    id: 4,
-                    deviceId: "DEV-004",
-                    applicationName: "Ogur.Sentinel",
-                    ipAddress: "192.168.1.103",
-                    hostname: "WORKSTATION",
-                    status: "Offline",
-                    lastSeen: new Date(Date.now() - 86400000),
-                    connectedAt: new Date(Date.now() - 172800000),
-                    cpuUsage: 0,
-                    memoryUsage: 0,
-                    uptime: "0m"
+<script>
+    let detailsPopup;
+    let blockPopup;
+    let devicesGrid;
+    let pendingDetailsData = null;
+    let pendingBlockData = null;
+    const devices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Devices));
+
+    $(function() {
+        console.log("Devices loaded:", devices.length);
+
+        detailsPopup = $("#detailsPopup").dxPopup({
+            width: 900,
+            height: "auto",
+            maxHeight: "90vh",
+            showTitle: true,
+            title: "Device Details",
+            showCloseButton: true,
+            contentTemplate: function() {
+                return $("<div>").attr("id", "detailsContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingDetailsData) {
+                    renderDetails(pendingDetailsData);
+                    pendingDetailsData = null;
                 }
-            ];
+            }
+        }).dxPopup("instance");
 
-            updateStats(devices);
+        blockPopup = $("#blockPopup").dxPopup({
+            width: 500,
+            height: "auto",
+            showTitle: true,
+            title: "Block Device",
+            showCloseButton: true,
+            contentTemplate: function() {
+                return $("<div>").attr("id", "blockContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingBlockData) {
+                    renderBlock(pendingBlockData);
+                    pendingBlockData = null;
+                }
+            }
+        }).dxPopup("instance");
 
-            const grid = $("#devicesGrid").dxDataGrid({
+        setTimeout(function() {
+            devicesGrid = $("#devicesGrid").dxDataGrid({
                 dataSource: devices,
                 showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: true,
                 hoverStateEnabled: true,
                 columnAutoWidth: true,
-                filterRow: {
-                    visible: true
-                },
-                headerFilter: {
-                    visible: true
-                },
-                searchPanel: {
-                    visible: true,
-                    width: 240,
-                    placeholder: "Search devices..."
-                },
-                paging: {
-                    pageSize: 15
-                },
-                pager: {
-                    visible: true,
-                    showPageSizeSelector: true,
-                    allowedPageSizes: [10, 15, 25, 50]
-                },
+                noDataText: "No devices found",
+                filterRow: { visible: true },
+                headerFilter: { visible: true },
+                searchPanel: { visible: true, width: 240, placeholder: "Search devices..." },
+                paging: { pageSize: 15 },
+                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
+                export: { enabled: true, fileName: "devices" },
                 columns: [
+                    { dataField: "DeviceName", caption: "Device Name", width: 200 },
                     {
-                        dataField: "deviceId",
-                        caption: "Device ID",
-                        width: 130,
+                        dataField: "Hwid",
+                        caption: "HWID",
+                        width: 150,
                         cellTemplate: function(container, options) {
-                            $("<a>")
-                                .attr("href", "/Devices/Details/" + options.data.id)
-                                .addClass("fw-bold text-primary")
-                                .text(options.value)
-                                .appendTo(container);
+                            const displayValue = options.value ? options.value.substring(0, 16) + "..." : "N/A";
+                            $("<code>").text(displayValue).appendTo(container);
                         }
                     },
+                    { dataField: "LastIpAddress", caption: "IP Address", width: 130 },
+                    { dataField: "RegisteredAt", caption: "Registered", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                    { dataField: "LastSeenAt", caption: "Last Seen", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 150 },
                     {
-                        dataField: "applicationName",
-                        caption: "Application",
-                        width: 150
-                    },
-                    {
-                        dataField: "hostname",
-                        caption: "Hostname"
-                    },
-                    {
-                        dataField: "ipAddress",
-                        caption: "IP Address",
-                        width: 130
-                    },
-                    {
-                        dataField: "status",
+                        dataField: "Status",
                         caption: "Status",
-                        width: 100,
+                        width: 110,
                         alignment: "center",
                         cellTemplate: function(container, options) {
                             let badgeClass = "bg-secondary";
-                            let icon = "●";
-                            if (options.value === "Online") {
+                            let text = "Unknown";
+
+                            if (options.value === 1) {
                                 badgeClass = "bg-success";
-                                icon = "● Online";
-                            } else if (options.value === "Warning") {
+                                text = "Online";
+                            } else if (options.value === 2) {
                                 badgeClass = "bg-warning";
-                                icon = "⚠ Warning";
-                            } else if (options.value === "Offline") {
-                                badgeClass = "bg-secondary";
-                                icon = "● Offline";
+                                text = "Offline";
+                            } else if (options.value === 3) {
+                                badgeClass = "bg-danger";
+                                text = "Blocked";
+                            } else if (options.value === 4) {
+                                badgeClass = "bg-warning";
+                                text = "Warning";
                             }
-                            
+
                             $("<span>")
                                 .addClass("badge " + badgeClass)
-                                .text(icon)
+                                .text(text)
                                 .appendTo(container);
                         }
                     },
                     {
-                        dataField: "cpuUsage",
-                        caption: "CPU %",
-                        width: 80,
+                        dataField: "ConnectionId",
+                        caption: "Connection",
+                        width: 110,
                         alignment: "center",
                         cellTemplate: function(container, options) {
-                            let color = "success";
-                            if (options.value > 80) color = "danger";
-                            else if (options.value > 60) color = "warning";
-                            
-                            $("<span>")
-                                .addClass("text-" + color + " fw-bold")
-                                .text(options.value + "%")
-                                .appendTo(container);
+                            const badgeClass = options.value ? "badge bg-success" : "badge bg-secondary";
+                            const text = options.value ? "Online" : "Offline";
+                            $("<span>").addClass(badgeClass).text(text).appendTo(container);
                         }
-                    },
-                    {
-                        dataField: "memoryUsage",
-                        caption: "RAM %",
-                        width: 80,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            let color = "success";
-                            if (options.value > 80) color = "danger";
-                            else if (options.value > 60) color = "warning";
-                            
-                            $("<span>")
-                                .addClass("text-" + color + " fw-bold")
-                                .text(options.value + "%")
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "uptime",
-                        caption: "Uptime",
-                        width: 100
-                    },
-                    {
-                        dataField: "lastSeen",
-                        caption: "Last Seen",
-                        dataType: "datetime",
-                        format: "dd/MM/yyyy HH:mm",
-                        width: 150
                     },
                     {
                         type: "buttons",
@@ -284,84 +222,125 @@
                                 hint: "View Details",
                                 icon: "info",
                                 onClick: function(e) {
-                                    window.location.href = "/Devices/Details/" + e.row.data.id;
+                                    showDetails(e.row.data);
                                 }
                             },
                             {
-                                hint: "Send Command",
-                                icon: "message",
-                                visible: function(e) {
-                                    return e.row.data.status === "Online";
-                                },
-                                onClick: function(e) {
-                                    sendCommandDialog(e.row.data.id);
-                                }
-                            },
-                            {
-                                hint: "Disconnect",
+                                hint: "Block Device",
                                 icon: "clear",
                                 visible: function(e) {
-                                    return e.row.data.status === "Online";
+                                    return e.row.data.Status !== 3;
                                 },
                                 onClick: function(e) {
-                                    if (confirm("Disconnect this device?")) {
-                                        disconnectDevice(e.row.data.id);
-                                    }
+                                    showBlock(e.row.data);
                                 }
                             }
                         ]
                     }
-                ]
+                ],
+                onContentReady: function() {
+                    console.log("Grid rendered with " + devices.length + " items");
+                }
             }).dxDataGrid("instance");
+        }, 200);
+    });
 
-            $("#refreshBtn").click(function() {
-                grid.refresh();
-                Utils.showSuccess("Data refreshed!");
-            });
+    function showDetails(device) {
+        pendingDetailsData = device;
+        detailsPopup.option("title", "Device Details: " + device.DeviceName);
+        detailsPopup.show();
+    }
 
-            // Auto-refresh every 30 seconds
-            setInterval(function() {
-                grid.refresh();
-            }, 30000);
-        });
+    function renderDetails(device) {
+        const registeredDate = new Date(device.RegisteredAt).toLocaleDateString('pl-PL');
+        const lastSeenDate = new Date(device.LastSeenAt).toLocaleString('pl-PL');
 
-        function updateStats(devices) {
-            const online = devices.filter(d => d.status === "Online").length;
-            const offline = devices.filter(d => d.status === "Offline").length;
-            const warning = devices.filter(d => d.status === "Warning").length;
-            
-            $("#onlineCount").text(online);
-            $("#offlineCount").text(offline);
-            $("#warningCount").text(warning);
-            $("#totalCount").text(devices.length);
+        let statusBadge = "bg-secondary";
+        let statusText = "Unknown";
+        if (device.Status === 1) {
+            statusBadge = "bg-success";
+            statusText = "Online";
+        } else if (device.Status === 2) {
+            statusBadge = "bg-warning";
+            statusText = "Offline";
+        } else if (device.Status === 3) {
+            statusBadge = "bg-danger";
+            statusText = "Blocked";
+        } else if (device.Status === 4) {
+            statusBadge = "bg-warning";
+            statusText = "Warning";
         }
 
-        function sendCommandDialog(deviceId) {
-            const command = prompt("Enter command to send:");
-            if (command) {
-                // Call API endpoint
-                ApiClient.post(`/devices/${deviceId}/commands`, { command: command })
-                    .then(() => {
-                        Utils.showSuccess("Command sent successfully!");
-                    })
-                    .catch(error => {
-                        Utils.showError("Failed to send command");
-                        console.error(error);
-                    });
-            }
-        }
+        const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3"><i class="dx-icon-runner"></i> Device Information</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr><th width="40%">Device Name:</th><td>${device.DeviceName}</td></tr>
+                            <tr><th>HWID:</th><td><code>${device.Hwid}</code></td></tr>
+                            <tr><th>Status:</th><td><span class="badge ${statusBadge}">${statusText}</span></td></tr>
+                            <tr><th>IP Address:</th><td>${device.LastIpAddress || 'N/A'}</td></tr>
+                            <tr><th>Registered:</th><td>${registeredDate}</td></tr>
+                            <tr><th>Last Seen:</th><td>${lastSeenDate}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="mb-3"><i class="dx-icon-info"></i> Connection</h6>
+                        <p><strong>Status:</strong> ${device.ConnectionId ? '<span class="badge bg-success">Online</span>' : '<span class="badge bg-secondary">Offline</span>'}</p>
+                        ${device.ConnectionId ? `<p><strong>Connection ID:</strong> <code>${device.ConnectionId}</code></p>` : ''}
+                        <hr>
+                        ${device.Status !== 3 ? `
+                        <button class="btn btn-danger btn-sm" onclick="closeDetailsAndBlock(${device.Id})">
+                            <i class="dx-icon-clear"></i> Block Device
+                        </button>` : ''}
+                    </div>
+                </div>
+            `;
 
-        function disconnectDevice(id) {
-            // Call API endpoint
-            ApiClient.post(`/devices/${id}/disconnect`)
-                .then(() => {
-                    Utils.showSuccess("Device disconnected successfully!");
-                    location.reload();
-                })
-                .catch(error => {
-                    Utils.showError("Failed to disconnect device");
-                    console.error(error);
-                });
+        $("#detailsContent").html(content);
+    }
+
+    function showBlock(device) {
+        pendingBlockData = device;
+        blockPopup.option("title", "Block Device");
+        blockPopup.show();
+    }
+
+    function renderBlock(device) {
+        const content = `
+                <div class="alert alert-warning">
+                    <i class="dx-icon-warning"></i> <strong>Warning!</strong> This will prevent the device from accessing the application.
+                </div>
+                <p>Are you sure you want to block this device?</p>
+                <table class="table table-sm">
+                    <tr><th>Device Name:</th><td>${device.DeviceName}</td></tr>
+                    <tr><th>HWID:</th><td><code>${device.Hwid}</code></td></tr>
+                    <tr><th>IP Address:</th><td>${device.LastIpAddress || 'N/A'}</td></tr>
+                </table>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="button" class="btn btn-danger" onclick="confirmBlock(${device.Id})">
+                        <i class="dx-icon-clear"></i> Yes, Block Device
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="blockPopup.hide()">
+                        Cancel
+                    </button>
+                </div>
+            `;
+
+        $("#blockContent").html(content);
+    }
+
+    function closeDetailsAndBlock(deviceId) {
+        detailsPopup.hide();
+        const device = devices.find(d => d.Id === deviceId);
+        if (device) {
+            showBlock(device);
         }
-    </script>
+    }
+
+    function confirmBlock(deviceId) {
+        DevExpress.ui.notify("Block functionality not yet implemented", "info", 2000);
+        blockPopup.hide();
+    }
+</script>
 }

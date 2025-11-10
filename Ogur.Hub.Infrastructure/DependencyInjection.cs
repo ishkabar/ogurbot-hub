@@ -7,11 +7,12 @@ using Ogur.Hub.Infrastructure.BackgroundServices;
 using Ogur.Hub.Infrastructure.Persistence;
 using Ogur.Hub.Infrastructure.Persistence.Repositories;
 using Ogur.Hub.Infrastructure.Services;
-using Ogur.Hub.Infrastructure.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.SignalR;
+using Ogur.Hub.Application.Interfaces;
+using Ogur.Hub.Application.Services;
+using Ogur.Hub.Infrastructure.Repositories;
 
 
 
@@ -94,5 +95,14 @@ public static class DependencyInjection
     private static void AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddScoped<ICommandDispatcher, CommandDispatcher>();
+        services.AddScoped<IDockerMonitorService, DockerMonitorService>();
+        services.AddScoped<ISystemMonitorService, SystemMonitorService>();
+        services.AddScoped<IVpsMonitorService, VpsMonitorService>();
+        services.AddScoped<IVpsRepository, VpsRepository>();
+        
+        
+
+        services.AddHostedService<VpsMonitoringBackgroundService>();
+        
     }
 }

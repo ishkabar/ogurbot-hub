@@ -1,0 +1,161 @@
+@* File: Hub.Web/Views/Home/Settings.cshtml *@
+@model SettingsViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>@Model.Title</h2>
+        <p class="text-muted">@Model.Description</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="dx-icon-user"></i> Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" value="@Model.Username" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+                    <input type="text" class="form-control" value="@(Model.IsAdmin ? "Administrator" : "User")" readonly />
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="dx-icon-preferences"></i> Preferences</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Theme</label>
+                    <select class="form-select" id="themeSelect">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Language</label>
+                    <select class="form-select">
+                        <option value="en">English</option>
+                        <option value="pl">Polski</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="savePreferences()">
+                    <i class="dx-icon-save"></i> Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="dx-icon-key"></i> Change Password</h5>
+            </div>
+            <div class="card-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" />
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="changePassword()">
+                        <i class="dx-icon-check"></i> Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="dx-icon-info"></i> System Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td><strong>Version:</strong></td>
+                            <td>1.0.0</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Build Date:</strong></td>
+                            <td>@DateTime.Now.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Environment:</strong></td>
+                            <td>Production</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            // Load current theme
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            $('#themeSelect').val(currentTheme);
+        });
+
+        function savePreferences() {
+            const theme = $('#themeSelect').val();
+            localStorage.setItem('theme', theme);
+            
+            // Apply theme
+            if (theme === 'dark') {
+                $('#dx-theme').attr('href', 'https://cdn3.devexpress.com/jslib/23.2.3/css/dx.dark.css');
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+                document.documentElement.classList.add('dark-mode');
+            } else {
+                $('#dx-theme').attr('href', 'https://cdn3.devexpress.com/jslib/23.2.3/css/dx.light.css');
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+                document.documentElement.classList.remove('dark-mode');
+            }
+            
+            DevExpress.ui.notify("Preferences saved successfully!", "success", 2000);
+        }
+
+        function changePassword() {
+            const current = $('#currentPassword').val();
+            const newPass = $('#newPassword').val();
+            const confirm = $('#confirmPassword').val();
+            
+            if (!current || !newPass || !confirm) {
+                DevExpress.ui.notify("Please fill all fields", "error", 2000);
+                return;
+            }
+            
+            if (newPass !== confirm) {
+                DevExpress.ui.notify("Passwords do not match", "error", 2000);
+                return;
+            }
+            
+            // TODO: Implement password change API call
+            DevExpress.ui.notify("Password change not yet implemented", "info", 2000);
+        }
+    </script>
+}

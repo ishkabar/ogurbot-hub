@@ -1,0 +1,28 @@
+// File: Hub.Web/Views/Shared/_EditBase.cshtml
+// Project: Hub.Web
+// Namespace: Hub.Web.Views.Shared
+
+@model BaseEditViewModel
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>@Model.Title</h2>
+                <p class="text-muted">@Model.Description</p>
+            </div>
+            <div>
+                <a asp-controller="@Model.ControllerName" asp-action="Index" class="btn btn-secondary">
+                    <i class="dx-icon-back"></i> Back to List
+                </a>
+                @RenderSection("AdditionalActions", required: false)
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    @RenderBody()
+</div>
+
+@RenderSection("Scripts", required: false)

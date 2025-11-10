@@ -1,3 +1,4 @@
+@* File: Hub.Web/Views/Shared/_Layout.cshtml *@
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,23 +51,45 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Home" asp-action="Index">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")"
+                       asp-controller="Home" asp-action="Index">
                         <i class="dx-icon-home"></i> Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Applications" asp-action="Index">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Applications" ? "active" : "")"
+                       asp-controller="Applications" asp-action="Index">
                         <i class="dx-icon-box"></i> Applications
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Licenses" asp-action="Index">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Licenses" ? "active" : "")"
+                       asp-controller="Licenses" asp-action="Index">
                         <i class="dx-icon-key"></i> Licenses
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Devices" asp-action="Index">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Devices" ? "active" : "")"
+                       asp-controller="Devices" asp-action="Index">
                         <i class="dx-icon-runner"></i> Devices
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Users" ? "active" : "")"
+                       asp-controller="Users" asp-action="Index">
+                        <i class="dx-icon-user"></i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Vps" ? "active" : "")"
+                       asp-controller="Vps" asp-action="Index">
+                        <i class="dx-icon-chart"></i> VPS
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Traefik" ? "active" : "")"
+                       asp-controller="Traefik" asp-action="Index">
+                        <i class="dx-icon-runner"></i> Traefik
                     </a>
                 </li>
             </ul>
@@ -83,7 +106,16 @@
                         <i class="dx-icon-user"></i> Admin
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="dx-icon-preferences"></i> Settings</a></li>
+                        <li>
+                            <a class="dropdown-item" asp-controller="Home" asp-action="Settings">
+                                <i class="dx-icon-preferences"></i> Settings
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" asp-controller="Home" asp-action="Privacy">
+                                <i class="dx-icon-info"></i> Privacy
+                            </a>
+                        </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form asp-controller="Account" asp-action="Logout" method="post" style="display: inline;">
