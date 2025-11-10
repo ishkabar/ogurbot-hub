@@ -90,7 +90,10 @@ public class VpsMonitoringBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error in VPS monitoring background service");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            _logger.LogInformation("VPS monitoring cycle completed - pushed stats to {Count} clients", 
+                _hubContext.Clients.Group("VpsMonitoring"));
+            
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
         }
     }
 
@@ -126,7 +129,7 @@ public class VpsMonitoringBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error in VPS monitoring development mode");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
         }
     }
 }

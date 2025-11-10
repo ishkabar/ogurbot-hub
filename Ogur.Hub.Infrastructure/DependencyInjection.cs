@@ -99,9 +99,6 @@ public static class DependencyInjection
         services.AddScoped<ISystemMonitorService, SystemMonitorService>();
         services.AddScoped<IVpsMonitorService, VpsMonitorService>();
         services.AddScoped<IVpsRepository, VpsRepository>();
-        
-        
-
         services.AddHostedService<VpsMonitoringBackgroundService>();
         
     }

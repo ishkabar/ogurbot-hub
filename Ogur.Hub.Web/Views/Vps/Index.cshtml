@@ -544,6 +544,7 @@
                 success: function (result) {
                     DevExpress.ui.notify("Website added successfully!", "success", 2000);
                     addWebsitePopup.hide();
+                    location.reload();
 
                     $.ajax({
                         url: vpsData.apiBaseUrl + '/api/vps/websites',
@@ -609,12 +610,15 @@
                 if (data.Containers && Array.isArray(data.Containers) && data.Containers.length > 0) {
                     console.log("Updating containers:", data.Containers.length);
                     containersGrid.option("dataSource", data.Containers);
+                    containersGrid.refresh();
                     $("#containersCount").text(data.Containers.length);
                 }
 
                 if (data.Websites && Array.isArray(data.Websites)) {
                     console.log("Updating websites:", data.Websites.length);
+                    websitesGrid.beginUpdate();
                     websitesGrid.option("dataSource", data.Websites);
+                    websitesGrid.endUpdate();
                     $("#websitesCount").text(data.Websites.length);
                 }
 

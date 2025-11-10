@@ -59,7 +59,7 @@ public class SystemMonitorService : ISystemMonitorService
 
             await _vpsRepository.AddSnapshotAsync(snapshot, cancellationToken);
             
-            _logger.LogDebug("Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",
+            _logger.LogInformation("Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",
                 cpuUsage, memoryInfo.Used / 1024m / 1024m / 1024m, memoryInfo.Total / 1024m / 1024m / 1024m,
                 diskInfo.Used / 1024m / 1024m / 1024m, diskInfo.Total / 1024m / 1024m / 1024m,
                 networkInfo.RxBytesPerSec / 1024m / 1024m, networkInfo.TxBytesPerSec / 1024m / 1024m);
