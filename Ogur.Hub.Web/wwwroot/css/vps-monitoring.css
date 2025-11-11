@@ -1,0 +1,257 @@
+﻿/* File: Hub.Web/wwwroot/css/vps-monitoring.css */
+/* Project: Hub.Web */
+/* VPS Monitoring specific styles with enhanced gauge view */
+
+/* Resource Cards */
+.stat-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.stat-card .card-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.stat-card .card-subtitle {
+    opacity: 0.9;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+}
+
+.stat-icon {
+    opacity: 0.3;
+}
+
+/* Gauge View Enhancements */
+.gauge-card {
+    background: var(--bs-light);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.gauge-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+}
+
+.gauge-card .card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.gauge-card .card-subtitle {
+    font-weight: 600;
+    color: var(--bs-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+/* DevExpress Gauge Container */
+#cpuGauge,
+#memoryGauge,
+#diskGauge,
+#networkGauge {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 1rem auto;
+}
+
+/* Dark mode support for gauges */
+[data-bs-theme="dark"] .gauge-card {
+    background: var(--bs-dark);
+    border-color: var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .gauge-card .card-subtitle {
+    color: var(--bs-light);
+}
+
+/* Grid Container Enhancements */
+.vps-grid-container {
+    background: var(--bs-body-bg);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* Status Badges */
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+}
+
+/* Container Grid Styling */
+#containersGrid .dx-datagrid {
+    border: none;
+    font-size: 0.875rem;
+}
+
+#containersGrid .dx-datagrid-headers {
+    background: var(--bs-secondary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+#containersGrid .dx-datagrid-rowsview .dx-row {
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+#containersGrid .dx-datagrid-rowsview .dx-row:hover {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+/* Website Grid Styling */
+#websitesGrid .dx-datagrid {
+    border: none;
+    font-size: 0.875rem;
+}
+
+#websitesGrid .dx-datagrid-headers {
+    background: var(--bs-secondary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+#websitesGrid .dx-datagrid-rowsview .dx-row {
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+#websitesGrid .dx-datagrid-rowsview .dx-row:hover {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+/* View Toggle Button */
+.view-toggle-btn {
+    background: var(--bs-secondary);
+    border: 1px solid var(--bs-border-color);
+    color: var(--bs-body-color);
+    transition: all 0.3s ease;
+}
+
+.view-toggle-btn:hover {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Loading State */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    z-index: 10;
+}
+
+[data-bs-theme="dark"] .loading-overlay {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .stat-card .card-title {
+        font-size: 1.5rem;
+    }
+
+    .stat-icon {
+        display: none;
+    }
+
+    #cpuGauge,
+    #memoryGauge,
+    #diskGauge,
+    #networkGauge {
+        width: 150px;
+        height: 150px;
+    }
+
+    .gauge-card {
+        min-height: 240px;
+    }
+}
+
+@media (max-width: 576px) {
+    .stat-card .card-title {
+        font-size: 1.25rem;
+    }
+
+    #cpuGauge,
+    #memoryGauge,
+    #diskGauge,
+    #networkGauge {
+        width: 120px;
+        height: 120px;
+    }
+
+    .gauge-card {
+        min-height: 200px;
+    }
+
+    .gauge-card .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Animation for value changes */
+.stat-value-change {
+    animation: valueFlash 0.5s ease-in-out;
+}
+
+@keyframes valueFlash {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; background-color: rgba(var(--bs-primary-rgb), 0.1); }
+    100% { opacity: 1; }
+}
+
+/* Network gauge dynamic scaling indicator */
+.network-scale-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.1);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+/* Performance indicators */
+.performance-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 5px;
+}
+
+.performance-good { background-color: #28a745; }
+.performance-warning { background-color: #ffc107; }
+.performance-critical { background-color: #dc3545; }

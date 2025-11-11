@@ -8,15 +8,13 @@ using Ogur.Hub.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
-
 namespace Ogur.Hub.Infrastructure.Services;
 
 /// <summary>
-/// Service for monitoring system resources (CPU, memory, disk, network).
+/// Service for monitoring system resources (CPU, memory, disk, network) with exponential smoothing for network metrics.
 /// </summary>
 public class SystemMonitorService : ISystemMonitorService
 {
-    //private readonly IVpsRepository _vpsRepository;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SystemMonitorService> _logger;
     private CpuStats? _previousCpuStats;
@@ -65,7 +63,7 @@ public class SystemMonitorService : ISystemMonitorService
             await vpsRepository.AddSnapshotAsync(snapshot, cancellationToken);
 
             _logger.LogDebug(
-                "Captured resource snapshot: CPU={Cpu}%, Mem={Mem}GB/{Total}GB, Disk={Disk}GB/{DiskTotal}GB, Net RX={Rx}Mbps TX={Tx}Mbps",
+                "Captured resource snapshot: CPU={Cpu:F2}%, Mem={Mem:F2}GB/{Total:F2}GB, Disk={Disk:F2}GB/{DiskTotal:F2}GB, Net RX={Rx:F2}Mbps TX={Tx:F2}Mbps",
                 cpuUsage, memoryInfo.Used / 1024m / 1024m / 1024m, memoryInfo.Total / 1024m / 1024m / 1024m,
                 diskInfo.Used / 1024m / 1024m / 1024m, diskInfo.Total / 1024m / 1024m / 1024m,
                 networkInfo.RxBytesPerSec / 1024m / 1024m, networkInfo.TxBytesPerSec / 1024m / 1024m);
@@ -323,7 +321,6 @@ public class SystemMonitorService : ISystemMonitorService
                 }
             }
 
-
             var currentStats = new NetworkStats
             {
                 RxBytes = totalRxBytes,
@@ -339,7 +336,6 @@ public class SystemMonitorService : ISystemMonitorService
                 return new NetworkInfo();
             }
 
-
             var timeSpan = (currentTime - _previousNetworkTime.Value).TotalSeconds;
 
             if (timeSpan <= 0)
@@ -351,20 +347,36 @@ public class SystemMonitorService : ISystemMonitorService
             var rxDiff = currentStats.RxBytes - _previousNetworkStats.RxBytes;
             var txDiff = currentStats.TxBytes - _previousNetworkStats.TxBytes;
 
+            // Calculate raw bytes per second
+            var rawRxBytesPerSec = (decimal)(rxDiff / timeSpan);
+            var rawTxBytesPerSec = (decimal)(txDiff / timeSpan);
 
-            var rxBytesPerSec = (long)(rxDiff / timeSpan);
-            var txBytesPerSec = (long)(txDiff / timeSpan);
+            // Apply exponential smoothing for more responsive network metrics
+            // α = 0.3 gives good balance between responsiveness and stability
+            const decimal alpha = 0.3m;
             
+            var smoothedRxBytesPerSec = _previousNetworkStats.SmoothedRxBytesPerSec.HasValue
+                ? (long)(alpha * rawRxBytesPerSec + (1 - alpha) * _previousNetworkStats.SmoothedRxBytesPerSec.Value)
+                : (long)rawRxBytesPerSec;
+                
+            var smoothedTxBytesPerSec = _previousNetworkStats.SmoothedTxBytesPerSec.HasValue
+                ? (long)(alpha * rawTxBytesPerSec + (1 - alpha) * _previousNetworkStats.SmoothedTxBytesPerSec.Value)
+                : (long)rawTxBytesPerSec;
 
-            _previousNetworkStats = currentStats;
+            _previousNetworkStats = new NetworkStats
+            {
+                RxBytes = currentStats.RxBytes,
+                TxBytes = currentStats.TxBytes,
+                SmoothedRxBytesPerSec = smoothedRxBytesPerSec,
+                SmoothedTxBytesPerSec = smoothedTxBytesPerSec
+            };
             _previousNetworkTime = currentTime;
 
             var result = new NetworkInfo
             {
-                RxBytesPerSec = Math.Max(0, rxBytesPerSec),
-                TxBytesPerSec = Math.Max(0, txBytesPerSec)
+                RxBytesPerSec = Math.Max(0, smoothedRxBytesPerSec),
+                TxBytesPerSec = Math.Max(0, smoothedTxBytesPerSec)
             };
-
 
             return result;
         }
@@ -411,6 +423,8 @@ public class SystemMonitorService : ISystemMonitorService
     {
         public long RxBytes { get; init; }
         public long TxBytes { get; init; }
+        public long? SmoothedRxBytesPerSec { get; init; }
+        public long? SmoothedTxBytesPerSec { get; init; }
     }
 
     private record NetworkInfo
