@@ -115,7 +115,8 @@ public sealed class ApplicationsController : ControllerBase
         var existingApplications = await _applicationRepository.GetAllAsync(cancellationToken);
         if (existingApplications.Any(a => a.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)))
         {
-            return BadRequest(ApiResponse<CreateApplicationResponse>.ErrorResponse("Application with this name already exists"));
+            return BadRequest(
+                ApiResponse<CreateApplicationResponse>.ErrorResponse("Application with this name already exists"));
         }
 
         var (application, rawApiKey) = DomainApplication.Create(
@@ -127,7 +128,8 @@ public sealed class ApplicationsController : ControllerBase
         await _applicationRepository.AddAsync(application, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Application {ApplicationName} created with ID {ApplicationId}", application.Name, application.Id);
+        _logger.LogInformation("Application {ApplicationName} created with ID {ApplicationId}", application.Name,
+            application.Id);
 
         var response = new CreateApplicationResponse
         {
@@ -145,6 +147,63 @@ public sealed class ApplicationsController : ControllerBase
             nameof(GetApplication),
             new { id = application.Id },
             ApiResponse<CreateApplicationResponse>.SuccessResponse(response));
+    }
+
+
+    /// <summary>
+    /// Updates an existing application.
+    /// </summary>
+    /// <param name="id">Application identifier.</param>
+    /// <param name="request">Application update request.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Update result.</returns>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<ApplicationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateApplication(
+        int id,
+        [FromBody] UpdateApplicationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var application = await _applicationRepository.GetByIdAsync(id, cancellationToken);
+
+        if (application is null)
+        {
+            return NotFound(ApiResponse<ApplicationDto>.ErrorResponse("Application not found"));
+        }
+
+        // Check for name conflict with other applications
+        var existingApplications = await _applicationRepository.GetAllAsync(cancellationToken);
+        if (existingApplications.Any(a =>
+                a.Id != id && a.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            return BadRequest(ApiResponse<ApplicationDto>.ErrorResponse("Application with this name already exists"));
+        }
+
+        application.Update(
+            request.Name,
+            request.DisplayName,
+            request.CurrentVersion,
+            request.Description,
+            request.IsActive);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Application {ApplicationId} updated by admin", application.Id);
+
+        var dto = new ApplicationDto(
+            application.Id,
+            application.Name,
+            application.DisplayName,
+            application.Description,
+            application.CurrentVersion,
+            application.IsActive,
+            application.CreatedAt);
+
+        return Ok(ApiResponse<ApplicationDto>.SuccessResponse(dto));
     }
 
     /// <summary>

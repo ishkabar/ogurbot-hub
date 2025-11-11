@@ -1,27 +1,68 @@
-﻿using Ogur.Hub.Web.Models.ViewModels.Base;
+﻿// File: Hub.Web/Models/ViewModels/ApplicationViewModels.cs
+// Project: Hub.Web
+// Namespace: Ogur.Hub.Web.Models.ViewModels
+
+using Ogur.Hub.Web.Models.ViewModels.Base;
+using Ogur.Hub.Web.Services;
 
 namespace Ogur.Hub.Web.Models.ViewModels;
 
 /// <summary>
-/// Applications page view model
+/// View model for applications page
 /// </summary>
 public sealed class ApplicationsViewModel : BasePageViewModel
 {
     /// <summary>
     /// List of applications
     /// </summary>
-    public List<Services.ApplicationDto> Applications { get; init; } = new();
+    public List<ApplicationDto> Applications { get; set; } = new();
+}
+
+/// <summary>
+/// View model for application create page
+/// </summary>
+public sealed class ApplicationCreateViewModel : BasePageViewModel
+{
+    /// <summary>
+    /// Application name
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Application display name
+    /// </summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Application description
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Current version
+    /// </summary>
+    public string CurrentVersion { get; set; } = "1.0.0";
+
+    /// <summary>
+    /// Whether application is active
+    /// </summary>
+    public bool IsActive { get; set; } = true;
 }
 
 /// <summary>
 /// View model for application edit page
 /// </summary>
-public sealed class ApplicationEditViewModel : BaseDetailsViewModel
+public sealed class ApplicationEditViewModel : BaseEditViewModel
 {
     /// <summary>
-    /// Application data
+    /// Application ID to edit
     /// </summary>
-    public ApplicationViewDto Application { get; set; } = null!;
+    public int ApplicationId { get; set; }
+    
+    /// <summary>
+    /// Application data for editing
+    /// </summary>
+    public ApplicationDto? Application { get; set; }
 }
 
 /// <summary>
@@ -30,50 +71,32 @@ public sealed class ApplicationEditViewModel : BaseDetailsViewModel
 public sealed class ApplicationDetailsViewModel : BaseDetailsViewModel
 {
     /// <summary>
-    /// Application data
+    /// Application ID to load
     /// </summary>
-    public ApplicationViewDto Application { get; set; } = null!;
+    public int ApplicationId { get; set; }
     
     /// <summary>
-    /// Total licenses count
+    /// Application data
+    /// </summary>
+    public ApplicationDto? Application { get; set; }
+    
+    /// <summary>
+    /// Total licenses count for this application
     /// </summary>
     public int LicensesCount { get; set; }
     
     /// <summary>
-    /// Active licenses count
+    /// Active licenses count for this application
     /// </summary>
     public int ActiveLicensesCount { get; set; }
     
     /// <summary>
-    /// Total devices count
+    /// Total devices count for this application
     /// </summary>
     public int DevicesCount { get; set; }
     
     /// <summary>
-    /// Connected devices count
+    /// Connected devices count for this application
     /// </summary>
     public int ConnectedDevicesCount { get; set; }
-}
-
-/// <summary>
-/// Application data for view
-/// </summary>
-public sealed class ApplicationViewDto
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string DisplayName { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string CurrentVersion { get; set; } = string.Empty;
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public string? ApiKey { get; set; }
-}
-
-/// <summary>
-/// View model for application create page
-/// </summary>
-public sealed class ApplicationCreateViewModel : BasePageViewModel
-{
-    
 }

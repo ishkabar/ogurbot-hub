@@ -120,4 +120,20 @@ public sealed class Repository<TEntity, TId> : IRepository<TEntity, TId>
     {
         return _dbSet.AsQueryable();
     }
+    
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<TEntity>> FindWithIncludesAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default,
+        params string[] includes)
+    {
+        var query = _dbSet.AsQueryable();
+    
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+    
+        return await query.Where(predicate).ToListAsync(cancellationToken);
+    }
 }

@@ -1,118 +1,184 @@
-@* File: Hub.Web/Views/Applications/Edit.cshtml *@
+// File: Hub.Web/Views/Applications/Edit.cshtml
+// Project: Hub.Web
+// Namespace: Ogur.Hub.Web.Views.Applications
+
 @model ApplicationEditViewModel
 @{
     ViewData["Title"] = Model.Title;
+    Layout = "_EditBase";
 }
 
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2>@Model.Title</h2>
-                <p class="text-muted">@Model.Description</p>
-            </div>
-            <div>
-                <a asp-controller="@Model.ControllerName" asp-action="Index" class="btn btn-secondary">
-                    <i class="dx-icon-back"></i> Back to List
-                </a>
-            </div>
+<div class="col-12">
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="dx-icon-edit"></i> Edit Application</h5>
-            </div>
-            <div class="card-body">
-                <form id="editForm">
-                    <input type="hidden" id="applicationId" value="@Model.Application.Id" />
-                    
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" value="@Model.Application.Name" readonly />
-                        <small class="text-muted">Application name cannot be changed</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="displayName" class="form-label">Display Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="displayName" value="@Model.Application.DisplayName" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" rows="3">@Model.Application.Description</textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="currentVersion" class="form-label">Current Version <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="currentVersion" value="@Model.Application.CurrentVersion" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="isActive" @(Model.Application.IsActive ? "checked" : "") />
-                            <label class="form-check-label" for="isActive">
-                                Active
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary" onclick="saveApplication()">
-                            <i class="dx-icon-save"></i> Save Changes
-                        </button>
-                        <a asp-action="Details" asp-route-id="@Model.Application.Id" class="btn btn-secondary">
-                            <i class="dx-icon-close"></i> Cancel
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="dx-icon-info"></i> Information</h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">
-                    <i class="dx-icon-clock"></i> Created: @Model.Application.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                </p>
-                <hr />
-                <h6>Required Fields</h6>
-                <ul class="small">
-                    <li>Display Name</li>
-                    <li>Current Version</li>
-                </ul>
-            </div>
-        </div>
+        <p class="mt-3 text-muted">Loading application information...</p>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        function saveApplication() {
-            const id = $('#applicationId').val();
+        const applicationId = @Model.ApplicationId;
+
+        $(function() {
+            loadApplication();
+            
+            // Add ESC key handler for exit
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = `/Applications/Details/${applicationId}`;
+                }
+            });
+        });
+
+        async function loadApplication() {
+            try {
+                const response = await fetch(`/api/applications/${applicationId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken')
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load application');
+                }
+
+                const result = await response.json();
+                const application = result.data || result;
+                renderEditForm(application);
+            } catch (error) {
+                console.error('Error loading application:', error);
+                showError('Failed to load application. Please try again.');
+            }
+        }
+
+        function renderEditForm(app) {
+            const content = `
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="dx-icon-edit"></i> Edit Application</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="editForm">
+                                <input type="hidden" id="applicationId" value="${app.id}" />
+                                
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" value="${app.name}" required />
+                                    <small class="text-muted">Internal application identifier</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="displayName" class="form-label">Display Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="displayName" value="${app.displayName}" required />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" rows="3">${app.description || ''}</textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="currentVersion" class="form-label">Current Version <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="currentVersion" value="${app.currentVersion}" required />
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isActive" ${app.isActive ? 'checked' : ''} />
+                                        <label class="form-check-label" for="isActive">
+                                            Application is active
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" onclick="saveApplication()">
+                                        <i class="dx-icon-save"></i> Save Changes
+                                    </button>
+                                    <a href="/Applications/Details/${app.id}" class="btn btn-secondary">
+                                        <i class="dx-icon-close"></i> Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="dx-icon-info"></i> Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">
+                                <i class="dx-icon-clock"></i> Created: ${new Date(app.createdAt).toLocaleString('pl-PL')}
+                            </p>
+                            <hr />
+                            <h6>Required Fields</h6>
+                            <ul class="small">
+                                <li>Name</li>
+                                <li>Display Name</li>
+                                <li>Current Version</li>
+                            </ul>
+                            <hr />
+                            <div class="alert alert-info small mb-0">
+                                <i class="dx-icon-info"></i> Press ESC to cancel editing.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('.row').html(content);
+        }
+
+        async function saveApplication() {
             const data = {
-                id: parseInt(id),
-                displayName: $('#displayName').val(),
-                description: $('#description').val(),
-                currentVersion: $('#currentVersion').val(),
+                name: $('#name').val().trim(),
+                displayName: $('#displayName').val().trim(),
+                description: $('#description').val().trim(),
+                currentVersion: $('#currentVersion').val().trim(),
                 isActive: $('#isActive').is(':checked')
             };
 
-            if (!data.displayName || !data.currentVersion) {
+            if (!data.name || !data.displayName || !data.currentVersion) {
                 DevExpress.ui.notify("Please fill all required fields", "error", 3000);
                 return;
             }
 
-            DevExpress.ui.notify("Update functionality not yet implemented", "info", 2000);
-            // TODO: Implement API call
-            // $.ajax({ url: '/Applications/Update', type: 'POST', ... });
+            try {
+                const response = await fetch(`/api/applications/${applicationId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update application');
+                }
+
+                DevExpress.ui.notify("Application updated successfully", "success", 2000);
+                setTimeout(() => window.location.href = `/Applications/Details/${applicationId}`, 2000);
+            } catch (error) {
+                console.error('Error saving application:', error);
+                DevExpress.ui.notify("Failed to update application", "error", 3000);
+            }
+        }
+
+        function showError(message) {
+            $('.row').html(`
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <i class="dx-icon-warning"></i> ${message}
+                    </div>
+                </div>
+            `);
         }
     </script>
 }

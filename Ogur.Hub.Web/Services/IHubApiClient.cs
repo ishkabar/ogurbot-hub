@@ -65,6 +65,30 @@ public interface IHubApiClient
     Task<LicenseDto?> CreateLicenseAsync(string token, CreateLicenseRequest request);
 
     /// <summary>
+    /// Creates a new application
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="request">Application creation request</param>
+    /// <returns>Created application</returns>
+    Task<ApplicationDto?> CreateApplicationAsync(string token, CreateApplicationRequest request);
+
+    /// <summary>
+    /// Creates a new user
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="request">User creation request</param>
+    /// <returns>Created user</returns>
+    Task<UserDto?> CreateUserAsync(string token, CreateUserRequest request);
+
+    /// <summary>
+    /// Creates a new device manually (optional - normally devices are auto-registered via license validation)
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="request">Device creation request</param>
+    /// <returns>Created device</returns>
+    Task<DeviceDto?> CreateDeviceAsync(string token, CreateDeviceRequest request);
+
+    /// <summary>
     /// Gets all VPS containers
     /// </summary>
     /// <param name="token">Authentication token</param>
@@ -150,6 +174,21 @@ public record ApplicationDto(
     string CurrentVersion,
     bool IsActive,
     DateTime CreatedAt);
+
+/// <summary>
+/// Create application request
+/// </summary>
+/// <param name="Name">Application name</param>
+/// <param name="DisplayName">Display name</param>
+/// <param name="Description">Optional description</param>
+/// <param name="CurrentVersion">Current version</param>
+/// <param name="IsActive">Whether application is active</param>
+public record CreateApplicationRequest(
+    string Name,
+    string DisplayName,
+    string? Description,
+    string CurrentVersion,
+    bool IsActive);
 
 #endregion
 
@@ -238,6 +277,19 @@ public record DeviceDto(
     string? ConnectionId,
     DateTime? ConnectedAt);
 
+/// <summary>
+/// Create device request (if manually adding devices)
+/// </summary>
+/// <param name="LicenseId">License ID</param>
+/// <param name="Hwid">Hardware ID</param>
+/// <param name="DeviceGuid">Device GUID</param>
+/// <param name="DeviceName">Device name</param>
+public record CreateDeviceRequest(
+    int LicenseId,
+    string Hwid,
+    string DeviceGuid,
+    string DeviceName);
+
 #endregion
 
 #region User DTOs
@@ -262,6 +314,21 @@ public record UserDto(
     int LicensesCount,
     DateTime CreatedAt,
     DateTime? LastLoginAt);
+
+/// <summary>
+/// Create user request
+/// </summary>
+/// <param name="Username">Username</param>
+/// <param name="Email">Email address</param>
+/// <param name="Password">Password</param>
+/// <param name="IsActive">Whether user is active</param>
+/// <param name="IsAdmin">Whether user is admin</param>
+public record CreateUserRequest(
+    string Username,
+    string Email,
+    string Password,
+    bool IsActive,
+    bool IsAdmin);
 
 #endregion
 
@@ -328,6 +395,48 @@ public record VpsWebsiteDto(
     int? LastStatusCode,
     int? LastResponseTimeMs,
     bool SslExpiringSoon);
+
+
+/// <summary>
+/// Update application request
+/// </summary>
+/// <param name="Name">Application name</param>
+/// <param name="DisplayName">Display name</param>
+/// <param name="Description">Description</param>
+/// <param name="CurrentVersion">Current version</param>
+/// <param name="IsActive">Whether application is active</param>
+public record UpdateApplicationRequest(
+    string Name,
+    string DisplayName,
+    string? Description,
+    string CurrentVersion,
+    bool IsActive);
+
+/// <summary>
+/// Update license request
+/// </summary>
+/// <param name="MaxDevices">Maximum allowed devices</param>
+/// <param name="ExpiresAt">Expiration date</param>
+/// <param name="Status">License status</param>
+public record UpdateLicenseRequest(
+    int MaxDevices,
+    DateTime? ExpiresAt,
+    int Status);
+
+/// <summary>
+/// Update user request
+/// </summary>
+/// <param name="Username">Username</param>
+/// <param name="Email">Email address</param>
+/// <param name="IsActive">Whether user is active</param>
+/// <param name="IsAdmin">Whether user is admin</param>
+/// <param name="Password">New password (optional)</param>
+public record UpdateUserRequest(
+    string Username,
+    string Email,
+    bool IsActive,
+    bool IsAdmin,
+    string? Password);
 
 /// <summary>
 /// VPS resource data transfer object

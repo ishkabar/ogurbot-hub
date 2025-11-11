@@ -4,6 +4,10 @@
 
 using Ogur.Hub.Domain.Common;
 using Ogur.Hub.Domain.ValueObjects;
+using Ogur.Hub.Domain.Common;
+using Ogur.Hub.Domain.ValueObjects;
+using Ogur.Hub.Domain.Enums;
+
 
 namespace Ogur.Hub.Domain.Entities;
 
@@ -48,6 +52,11 @@ public sealed class License : AggregateRoot<int>
     public bool IsActive { get; private set; }
 
     /// <summary>
+    /// Gets the current status of the license.
+    /// </summary>
+    public LicenseStatus Status { get; private set; } = LicenseStatus.Active;
+
+    /// <summary>
     /// Gets the application this license is for.
     /// </summary>
     public Application Application { get; private set; } = null!;
@@ -62,7 +71,9 @@ public sealed class License : AggregateRoot<int>
     /// </summary>
     public ICollection<Device> Devices { get; private set; } = new List<Device>();
 
-    private License() { }
+    private License()
+    {
+    }
 
     /// <summary>
     /// Creates a new license instance.
@@ -88,9 +99,10 @@ public sealed class License : AggregateRoot<int>
             MaxDevices = maxDevices,
             StartDate = startDate ?? DateTime.UtcNow,
             EndDate = endDate,
-            IsActive = true
+            IsActive = true,
+            Status = LicenseStatus.Active
         };
-        
+
         return license;
     }
 
@@ -163,6 +175,35 @@ public sealed class License : AggregateRoot<int>
             throw new ArgumentException("End date must be in the future", nameof(newEndDate));
 
         EndDate = newEndDate;
+        UpdateTimestamp();
+    }
+
+
+    /// <summary>
+    /// Updates license properties
+    /// </summary>
+    /// <param name="maxDevices">Maximum devices</param>
+    /// <param name="endDate">Expiration date</param>
+    /// <param name="status">License status</param>
+    public void Update(int maxDevices, DateTime? endDate, LicenseStatus status)
+    {
+        MaxDevices = maxDevices;
+        EndDate = endDate;
+        Status = status;
+
+        // Update IsActive based on status
+        IsActive = status == LicenseStatus.Active;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Updates license status
+    /// </summary>
+    /// <param name="status">New status</param>
+    public void UpdateStatus(LicenseStatus status)
+    {
+        Status = status;
+        IsActive = status == LicenseStatus.Active;
         UpdateTimestamp();
     }
 }

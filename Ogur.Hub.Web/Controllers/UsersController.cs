@@ -39,11 +39,11 @@ public sealed class UsersController : BaseController
         {
             var users = await _hubApiClient.GetUsersAsync(AuthToken!);
             
-            // If API returns 404 (not implemented), show empty list with info message
             if (users == null)
             {
-                _logger.LogInformation("Users API endpoint not yet implemented or returned null");
-                users = new List<UserDto>();
+                _logger.LogWarning("Failed to retrieve users - token may be expired");
+                HttpContext.Session.Clear();
+                return RedirectToAction("Login", "Account");
             }
 
             var viewModel = new UsersViewModel
@@ -76,6 +76,40 @@ public sealed class UsersController : BaseController
     }
 
     /// <summary>
+    /// Creates a new user
+    /// </summary>
+    /// <param name="request">User creation request</param>
+    /// <returns>JSON result</returns>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateUserRequest request)
+    {
+        try
+        {
+            if (!IsAdmin)
+            {
+                return Json(new { success = false, message = "Only administrators can create users" });
+            }
+
+            var user = await _hubApiClient.CreateUserAsync(AuthToken!, request);
+            
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Failed to create user" });
+            }
+
+            _logger.LogInformation("User {Username} created by admin {AdminUsername}", 
+                request.Username, Username);
+
+            return Json(new { success = true, data = user });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user {Username}", request.Username);
+            return Json(new { success = false, message = "An error occurred while creating the user" });
+        }
+    }
+
+    /// <summary>
     /// Displays user details
     /// </summary>
     /// <param name="id">User ID</param>
@@ -86,7 +120,7 @@ public sealed class UsersController : BaseController
         var viewModel = new UserDetailsViewModel
         {
             Title = "User Details",
-            Description = "View user details and associated licenses",
+            Description = "View user details and license information",
             Username = Username,
             IsAdmin = IsAdmin,
             ControllerName = "Users",
@@ -108,7 +142,7 @@ public sealed class UsersController : BaseController
         var viewModel = new UserEditViewModel
         {
             Title = "Edit User",
-            Description = "Update user information",
+            Description = "Update user information and permissions",
             Username = Username,
             IsAdmin = IsAdmin,
             ControllerName = "Users",
@@ -116,24 +150,6 @@ public sealed class UsersController : BaseController
             UserId = id
         };
         
-        return View(viewModel);
-    }
-    
-    /// <summary>
-    /// Displays create user form
-    /// </summary>
-    /// <returns>Create user view</returns>
-    [HttpGet]
-    public IActionResult Create()
-    {
-        var viewModel = new UserCreateViewModel
-        {
-            Title = "New User",
-            Description = "Register a new user",
-            Username = Username,
-            IsAdmin = IsAdmin
-        };
-    
         return View(viewModel);
     }
 }

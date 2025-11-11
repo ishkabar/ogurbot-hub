@@ -27,24 +27,6 @@ public sealed class LicensesController : BaseController
         _hubApiClient = hubApiClient;
         _logger = logger;
     }
-    
-    /// <summary>
-    /// Displays create license form
-    /// </summary>
-    /// <returns>Create license view</returns>
-    [HttpGet]
-    public IActionResult Create()
-    {
-        var viewModel = new LicenseCreateViewModel
-        {
-            Title = "New License",
-            Description = "Register a new license",
-            Username = Username,
-            IsAdmin = IsAdmin
-        };
-    
-        return View(viewModel);
-    }
 
     /// <summary>
     /// Displays list of licenses
@@ -94,6 +76,59 @@ public sealed class LicensesController : BaseController
             
             return View(viewModel);
         }
+    }
+
+    /// <summary>
+    /// Creates a new license
+    /// </summary>
+    /// <param name="request">License creation request</param>
+    /// <returns>JSON result</returns>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateLicenseRequest request)
+    {
+        try
+        {
+            if (!IsAdmin)
+            {
+                return Json(new { success = false, message = "Only administrators can create licenses" });
+            }
+
+            var license = await _hubApiClient.CreateLicenseAsync(AuthToken!, request);
+            
+            if (license == null)
+            {
+                return Json(new { success = false, message = "Failed to create license" });
+            }
+
+            _logger.LogInformation("License created for application {ApplicationId} and user {UserId} by admin {AdminUsername}", 
+                request.ApplicationId, request.UserId, Username);
+
+            return Json(new { success = true, data = license });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating license for application {ApplicationId} and user {UserId}", 
+                request.ApplicationId, request.UserId);
+            return Json(new { success = false, message = "An error occurred while creating the license" });
+        }
+    }
+    
+    /// <summary>
+    /// Displays create license form
+    /// </summary>
+    /// <returns>Create license view</returns>
+    [HttpGet]
+    public IActionResult CreateView()
+    {
+        var viewModel = new LicenseCreateViewModel
+        {
+            Title = "New License",
+            Description = "Register a new license",
+            Username = Username,
+            IsAdmin = IsAdmin
+        };
+    
+        return View("Create", viewModel);
     }
 
     /// <summary>

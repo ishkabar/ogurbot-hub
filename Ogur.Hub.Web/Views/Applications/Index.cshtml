@@ -1,6 +1,6 @@
 @model ApplicationsViewModel
 @{
-ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Title;
 }
 
 <!-- Page Header -->
@@ -12,21 +12,13 @@ ViewData["Title"] = Model.Title;
                 <p class="text-muted">@Model.Description</p>
             </div>
             <div>
-                <a asp-action="Create" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" onclick="showCreatePopup()">
                     <i class="dx-icon-plus"></i> New Application
-                </a>
+                </button>
             </div>
         </div>
     </div>
 </div>
-
-@if (TempData["ErrorMessage"] != null)
-{
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-    @TempData["ErrorMessage"]
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-}
 
 <!-- Stats Cards -->
 <div class="row mb-4">
@@ -71,7 +63,7 @@ ViewData["Title"] = Model.Title;
                         <h2 class="card-title mb-0">@Model.Applications.Count(a => !a.IsActive)</h2>
                     </div>
                     <div class="stat-icon">
-                        <i class="dx-icon-remove" style="font-size: 48px;"></i>
+                        <i class="dx-icon-close" style="font-size: 48px;"></i>
                     </div>
                 </div>
             </div>
@@ -83,9 +75,8 @@ ViewData["Title"] = Model.Title;
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Versions</h6>
-                        <h2 class="card-title mb-0"
-                            style="font-size: 1.5rem;">@(Model.Applications.Any() ? Model.Applications.Select(a => a.CurrentVersion).Distinct().Count().ToString() : "0")</h2>
+                        <h6 class="card-subtitle mb-2">Latest Version</h6>
+                        <h2 class="card-title mb-0" style="font-size: 1.2rem;">@(Model.Applications.Any() ? Model.Applications.OrderBy(a => a.CreatedAt).Last().CurrentVersion : "N/A")</h2>
                     </div>
                     <div class="stat-icon">
                         <i class="dx-icon-tags" style="font-size: 48px;"></i>
@@ -96,11 +87,11 @@ ViewData["Title"] = Model.Title;
     </div>
 </div>
 
-<!-- Applications Grid Card -->
+<!-- Applications Grid -->
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="mb-0">All Applications</h5>
             </div>
             <div class="card-body">
@@ -110,61 +101,36 @@ ViewData["Title"] = Model.Title;
     </div>
 </div>
 
-<!-- Details Popup -->
-<div id="detailsPopup"></div>
-
-<!-- Edit Popup -->
-<div id="editPopup"></div>
+<!-- Create Popup -->
+<div id="createPopup"></div>
 
 @section Scripts {
 <script>
-    let detailsPopup;
-    let editPopup;
+    let createPopup;
     let applicationsGrid;
-    let pendingDetailsData = null;
-    let pendingEditData = null;
+    let pendingCreateData = null;
     const applications = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Applications));
 
     $(function() {
         console.log("Applications loaded:", applications.length);
 
-        detailsPopup = $("#detailsPopup").dxPopup({
-            width: 900,
+        createPopup = $("#createPopup").dxPopup({
+            width: 600,
             height: "auto",
             maxHeight: "90vh",
             showTitle: true,
-            title: "Application Details",
+            title: "New Application",
             showCloseButton: true,
-            contentTemplate: function(container) {
-                return $("<div>").attr("id", "detailsContent").addClass("p-3");
+            contentTemplate: function() {
+                return $("<div>").attr("id", "createContent").addClass("p-3");
             },
             onShown: function() {
-                if (pendingDetailsData) {
-                    renderDetails(pendingDetailsData);
-                    pendingDetailsData = null;
+                if (pendingCreateData) {
+                    renderCreate();
+                    pendingCreateData = null;
                 }
             }
         }).dxPopup("instance");
-
-        editPopup = $("#editPopup").dxPopup({
-            width: 700,
-            height: "auto",
-            maxHeight: "90vh",
-            showTitle: true,
-            title: "Edit Application",
-            showCloseButton: true,
-            contentTemplate: function(container) {
-                return $("<div>").attr("id", "editContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingEditData) {
-                    renderEdit(pendingEditData);
-                    pendingEditData = null;
-                }
-            }
-        }).dxPopup("instance");
-
-        console.log("Popups initialized");
 
         setTimeout(function() {
             applicationsGrid = $("#applicationsGrid").dxDataGrid({
@@ -182,22 +148,25 @@ ViewData["Title"] = Model.Title;
                 pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
                 export: { enabled: true, fileName: "applications" },
                 columns: [
-                    { dataField: "Name", caption: "Name", width: 200 },
-                    { dataField: "DisplayName", caption: "Display Name", width: 250 },
-                    { dataField: "CurrentVersion", caption: "Version", width: 120, alignment: "center" },
+                    { dataField: "Name", caption: "Name", width: 180 },
+                    { dataField: "DisplayName", caption: "Display Name", width: 220 },
+                    { dataField: "Description", caption: "Description", width: 300 },
+                    { dataField: "CurrentVersion", caption: "Version", width: 120 },
                     {
                         dataField: "IsActive",
                         caption: "Status",
                         width: 110,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            const badgeClass = options.value ? "badge bg-success" : "badge bg-secondary";
+                        cellTemplate: function(container, options) {
+                            const badgeClass = options.value ? "bg-success" : "bg-secondary";
                             const text = options.value ? "Active" : "Inactive";
-                            $("<span>").addClass(badgeClass).text(text).appendTo(container);
+                            $("<span>")
+                                .addClass("badge " + badgeClass)
+                                .text(text)
+                                .appendTo(container);
                         }
                     },
                     { dataField: "CreatedAt", caption: "Created", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    { dataField: "Description", caption: "Description" },
                     {
                         type: "buttons",
                         width: 120,
@@ -205,15 +174,15 @@ ViewData["Title"] = Model.Title;
                             {
                                 hint: "View Details",
                                 icon: "info",
-                                onClick: function (e) {
-                                    showDetails(e.row.data);
+                                onClick: function(e) {
+                                    window.location.href = '@Url.Action("Details", "Applications")/' + e.row.data.Id;
                                 }
                             },
                             {
                                 hint: "Edit",
                                 icon: "edit",
-                                onClick: function (e) {
-                                    showEdit(e.row.data);
+                                onClick: function(e) {
+                                    window.location.href = '@Url.Action("Edit", "Applications")/' + e.row.data.Id;
                                 }
                             }
                         ]
@@ -226,124 +195,128 @@ ViewData["Title"] = Model.Title;
         }, 200);
     });
 
-    function showDetails(app) {
-        pendingDetailsData = app;
-        detailsPopup.option("title", "Application Details: " + app.DisplayName);
-        detailsPopup.show();
+    function showCreatePopup() {
+        pendingCreateData = {};
+        createPopup.show();
     }
 
-    function renderDetails(app) {
-        const createdDate = new Date(app.CreatedAt).toLocaleString('pl-PL', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
+    function renderCreate() {
         const content = `
-            <div class="row">
-                <div class="col-md-6">
-                    <h6 class="mb-3"><i class="dx-icon-info"></i> Application Information</h6>
-                    <table class="table table-sm table-borderless">
-                        <tr><th width="40%">Name:</th><td><code>${app.Name}</code></td></tr>
-                        <tr><th>Display Name:</th><td>${app.DisplayName}</td></tr>
-                        <tr><th>Version:</th><td><span class="badge bg-info">${app.CurrentVersion}</span></td></tr>
-                        <tr><th>Status:</th><td><span class="badge bg-${app.IsActive ? 'success' : 'secondary'}">${app.IsActive ? 'Active' : 'Inactive'}</span></td></tr>
-                        <tr><th>Created:</th><td>${createdDate}</td></tr>
-                    </table>
-                </div>
-                <div class="col-md-6">
-                    <h6 class="mb-3"><i class="dx-icon-doc"></i> Description</h6>
-                    <p class="text-muted">${app.Description || 'No description provided.'}</p>
-                    <hr>
-                    <button class="btn btn-primary btn-sm" onclick="closeDetailsAndEdit(${app.Id})">
-                        <i class="dx-icon-edit"></i> Edit Application
-                    </button>
-                </div>
-            </div>
-        `;
-
-        $("#detailsContent").html(content);
-    }
-
-    function showEdit(app) {
-        pendingEditData = app;
-        editPopup.option("title", "Edit Application: " + app.DisplayName);
-        editPopup.show();
-    }
-
-    function renderEdit(app) {
-        const content = `
-            <form id="editForm">
-                <input type="hidden" id="editAppId" value="${app.Id}" />
-                
-                <div class="mb-3">
-                    <label class="form-label">Name</label>
-                    <input type="text" class="form-control" value="${app.Name}" readonly />
-                    <small class="text-muted">Application name cannot be changed</small>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Display Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="editDisplayName" value="${app.DisplayName}" required />
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea class="form-control" id="editDescription" rows="3">${app.Description || ''}</textarea>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Current Version <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="editVersion" value="${app.CurrentVersion}" required />
-                </div>
-
-                <div class="mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="editIsActive" ${app.IsActive ? 'checked' : ''} />
-                        <label class="form-check-label">Active</label>
+            <form id="createForm">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label">Name *</label>
+                            <input type="text" class="form-control" id="appName" placeholder="e.g., MyApp" required>
+                            <div class="form-text">Application internal name (letters, numbers, underscore, hyphen only)</div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-primary" onclick="saveApplication()">
-                        <i class="dx-icon-save"></i> Save Changes
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label">Display Name *</label>
+                            <input type="text" class="form-control" id="appDisplayName" placeholder="e.g., My Application" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="appDescription" rows="3" placeholder="Application description..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Current Version *</label>
+                            <input type="text" class="form-control" id="appVersion" value="1.0.0" required>
+                            <div class="form-text">Semantic versioning (e.g., 1.0.0)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="appIsActive" checked>
+                                <label class="form-check-label" for="appIsActive">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="dx-icon-plus"></i> Create Application
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="editPopup.hide()">
-                        <i class="dx-icon-close"></i> Cancel
+                    <button type="button" class="btn btn-secondary" onclick="createPopup.hide()">
+                        Cancel
                     </button>
                 </div>
             </form>
         `;
 
-        $("#editContent").html(content);
+        $("#createContent").html(content);
+
+        // Form validation and submission
+        $("#createForm").on("submit", function(e) {
+            e.preventDefault();
+            
+            const name = $("#appName").val().trim();
+            const displayName = $("#appDisplayName").val().trim();
+            const description = $("#appDescription").val().trim();
+            const version = $("#appVersion").val().trim();
+            const isActive = $("#appIsActive").is(":checked");
+
+            if (!name || !displayName || !version) {
+                DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+                DevExpress.ui.notify("Name can only contain letters, numbers, underscores and hyphens", "error", 2000);
+                return;
+            }
+
+            if (!/^\d+\.\d+\.\d+.*$/.test(version)) {
+                DevExpress.ui.notify("Version must follow semantic versioning (e.g., 1.0.0)", "error", 2000);
+                return;
+            }
+
+            submitCreate({
+                name: name,
+                displayName: displayName,
+                description: description || null,
+                currentVersion: version,
+                isActive: isActive
+            });
+        });
     }
 
-    function closeDetailsAndEdit(appId) {
-        detailsPopup.hide();
-        const app = applications.find(a => a.Id === appId);
-        if (app) {
-            showEdit(app);
-        }
-    }
-
-    function saveApplication() {
-        const data = {
-            id: parseInt($('#editAppId').val()),
-            displayName: $('#editDisplayName').val(),
-            description: $('#editDescription').val(),
-            currentVersion: $('#editVersion').val(),
-            isActive: $('#editIsActive').is(':checked')
-        };
-
-        if (!data.displayName || !data.currentVersion) {
-            DevExpress.ui.notify("Please fill all required fields", "error", 3000);
-            return;
-        }
-
-        DevExpress.ui.notify("Update functionality not yet implemented", "info", 2000);
-        editPopup.hide();
+    function submitCreate(data) {
+        $.ajax({
+            url: '@Url.Action("Create", "Applications")',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
+            data: JSON.stringify(data),
+            success: function(result) {
+                if (result.success) {
+                    DevExpress.ui.notify("Application created successfully!", "success", 2000);
+                    createPopup.hide();
+                    location.reload();
+                } else {
+                    DevExpress.ui.notify(result.message || "Failed to create application", "error", 3000);
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || "An error occurred while creating the application";
+                DevExpress.ui.notify(message, "error", 3000);
+            }
+        });
     }
 </script>
 }

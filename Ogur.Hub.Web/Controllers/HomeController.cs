@@ -3,6 +3,7 @@
 // Namespace: Ogur.Hub.Web.Controllers
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Ogur.Hub.Web.Infrastructure;
 using Ogur.Hub.Web.Models;
 using Ogur.Hub.Web.Models.ViewModels;
@@ -17,6 +18,7 @@ namespace Ogur.Hub.Web.Controllers;
 public sealed class HomeController : BaseController
 {
     private readonly IHubApiClient _hubApiClient;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<HomeController> _logger;
 
     /// <summary>
@@ -24,9 +26,10 @@ public sealed class HomeController : BaseController
     /// </summary>
     /// <param name="hubApiClient">Hub API client for backend communication</param>
     /// <param name="logger">Logger instance</param>
-    public HomeController(IHubApiClient hubApiClient, ILogger<HomeController> logger)
+    public HomeController(IHubApiClient hubApiClient, IConfiguration configuration, ILogger<HomeController> logger)
     {
         _hubApiClient = hubApiClient;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -39,31 +42,40 @@ public sealed class HomeController : BaseController
         try
         {
             var stats = await _hubApiClient.GetDashboardStatsAsync(AuthToken!);
-            
+        
+            if (stats == null)
+            {
+                _logger.LogWarning("Failed to retrieve dashboard stats - token may be expired");
+                HttpContext.Session.Clear();
+                return RedirectToAction("Login", "Account");
+            }
+
             var viewModel = new DashboardViewModel
             {
                 Title = "Dashboard",
-                Description = "Welcome to Ogur.Hub Admin Panel",
+                Description = "Welcome to Ogur.Hub Admin Panel", 
                 Username = Username,
                 IsAdmin = IsAdmin,
-                Stats = stats ?? new DashboardStatsDto()
+                Stats = stats
             };
             
+            ViewData["ApiBaseUrl"] = _configuration["ApiSettings:BaseUrl"];
             return View(viewModel);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load dashboard");
-            
+            _logger.LogError(ex, "Error loading dashboard");
+        
             var viewModel = new DashboardViewModel
             {
                 Title = "Dashboard",
                 Description = "Welcome to Ogur.Hub Admin Panel",
                 Username = Username,
                 IsAdmin = IsAdmin,
-                Stats = new DashboardStatsDto()
+                Stats = new DashboardStatsDto() // Empty stats as fallback
             };
-            
+        
+            ViewData["ApiBaseUrl"] = _configuration["ApiSettings:BaseUrl"];
             return View(viewModel);
         }
     }
@@ -76,7 +88,7 @@ public sealed class HomeController : BaseController
     {
         return View();
     }
-    
+
 // File: Hub.Web/Controllers/HomeController.cs
 // W środku klasy HomeController dodaj:
 
@@ -106,9 +118,9 @@ public sealed class HomeController : BaseController
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
-        return View(new ErrorViewModel 
-        { 
-            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier 
+        return View(new ErrorViewModel
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
         });
     }
 }

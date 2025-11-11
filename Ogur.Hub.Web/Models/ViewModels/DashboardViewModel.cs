@@ -37,4 +37,9 @@ public sealed class DashboardStatsDto
     /// Number of commands sent today
     /// </summary>
     public int CommandsToday { get; init; }
+    public int TotalUsers { get; init; }
+    public int TotalDevices { get; init; }
+    public int ExpiredLicenses { get; init; }
+    public int RevokedLicenses { get; init; }
+    
 }

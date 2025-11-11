@@ -121,6 +121,8 @@ public sealed class LicensesController : ControllerBase
         [FromBody] CreateLicenseRequest request,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Creating license request: {@Request}", request);
+
         var command = new CreateLicenseCommand(
             request.ApplicationId,
             request.UserId,

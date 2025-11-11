@@ -74,10 +74,10 @@ public sealed class HubApiClient : IHubApiClient
         try
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var url = applicationId.HasValue 
-                ? $"/api/licenses?applicationId={applicationId}" 
+            var url = applicationId.HasValue
+                ? $"/api/licenses?applicationId={applicationId}"
                 : "/api/licenses";
-            
+
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -101,10 +101,10 @@ public sealed class HubApiClient : IHubApiClient
         try
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var url = licenseId.HasValue 
-                ? $"/api/devices?licenseId={licenseId}" 
+            var url = licenseId.HasValue
+                ? $"/api/devices?licenseId={licenseId}"
                 : "/api/devices";
-            
+
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -168,7 +168,94 @@ public sealed class HubApiClient : IHubApiClient
             return null;
         }
     }
-    
+
+    /// <summary>
+    /// Creates a new application
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="request">Application creation request</param>
+    /// <returns>Created application</returns>
+    public async Task<ApplicationDto?> CreateApplicationAsync(string token, CreateApplicationRequest request)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PostAsJsonAsync("/api/applications", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Create application failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<ApplicationDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating application");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a new user
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="request">User creation request</param>
+    /// <returns>Created user</returns>
+    public async Task<UserDto?> CreateUserAsync(string token, CreateUserRequest request)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PostAsJsonAsync("/api/users", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Create user failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a new device manually (optional - normally devices are auto-registered via license validation)
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="request">Device creation request</param>
+    /// <returns>Created device</returns>
+    public async Task<DeviceDto?> CreateDeviceAsync(string token, CreateDeviceRequest request)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PostAsJsonAsync("/api/devices", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Create device failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<DeviceDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating device");
+            return null;
+        }
+    }
+
     public async Task<List<VpsContainerDto>?> GetContainersAsync(string token)
     {
         try
@@ -240,7 +327,8 @@ public sealed class HubApiClient : IHubApiClient
         try
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.GetAsync($"/api/vps/resources/history?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
+            var response =
+                await _httpClient.GetAsync($"/api/vps/resources/history?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -286,6 +374,146 @@ public sealed class HubApiClient : IHubApiClient
             return false;
         }
     }
+
+
+    public async Task<ApplicationDto?> UpdateApplicationAsync(string token, int id, UpdateApplicationRequest request)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PutAsJsonAsync($"/api/applications/{id}", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Update application {Id} failed: {StatusCode}", id, response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<ApplicationDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating application {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<LicenseDto?> GetLicenseByIdAsync(string token, int id)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync($"/api/licenses/{id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get license {Id} failed: {StatusCode}", id, response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<LicenseDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting license {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<LicenseDto?> UpdateLicenseAsync(string token, int id, UpdateLicenseRequest request)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PutAsJsonAsync($"/api/licenses/{id}", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Update license {Id} failed: {StatusCode}", id, response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<LicenseDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating license {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<UserDto?> GetUserByIdAsync(string token, int id)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync($"/api/users/{id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get user {Id} failed: {StatusCode}", id, response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<UserDto?> UpdateUserAsync(string token, int id, UpdateUserRequest request)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PutAsJsonAsync($"/api/users/{id}", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Update user {Id} failed: {StatusCode}", id, response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<ApplicationDto?> GetApplicationByIdAsync(string token, int id)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync($"/api/applications/{id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Get application {Id} failed: {StatusCode}", id, response.StatusCode);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<ApplicationDto>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting application {Id}", id);
+            return null;
+        }
+    }
+
     
     public async Task<DashboardStatsDto?> GetDashboardStatsAsync(string token)
     {
@@ -300,7 +528,23 @@ public sealed class HubApiClient : IHubApiClient
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<DashboardStatsDto>();
+            var jsonString = await response.Content.ReadAsStringAsync();
+            var jsonDoc = JsonDocument.Parse(jsonString);
+        
+            if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement))
+            {
+                return new DashboardStatsDto
+                {
+                    TotalApplications = dataElement.GetProperty("totalApplications").GetInt32(),
+                    ActiveLicenses = dataElement.GetProperty("activeLicenses").GetInt32(),
+                    ConnectedDevices = dataElement.GetProperty("connectedDevices").GetInt32(),
+                    CommandsToday = dataElement.GetProperty("commandsToday").GetInt32(),
+                    ExpiredLicenses = dataElement.GetProperty("expiredLicenses").GetInt32(),
+                    RevokedLicenses = dataElement.GetProperty("revokedLicenses").GetInt32() 
+                };
+            }
+
+            return null;
         }
         catch (Exception ex)
         {

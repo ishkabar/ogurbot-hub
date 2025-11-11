@@ -1,6 +1,4 @@
-﻿@* File: Hub.Web/Views/Users/Index.cshtml *@
-@using Ogur.Hub.Web.Services
-@model UsersViewModel
+﻿@model UsersViewModel
 @{
 ViewData["Title"] = Model.Title;
 }
@@ -13,25 +11,14 @@ ViewData["Title"] = Model.Title;
                 <h2>@Model.Title</h2>
                 <p class="text-muted">@Model.Description</p>
             </div>
-            @if (Model.Users.Count > 0)
-            {
             <div>
-                <a asp-action="Create" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" onclick="showCreatePopup()">
                     <i class="dx-icon-plus"></i> New User
-                </a>
+                </button>
             </div>
-            }
         </div>
     </div>
 </div>
-
-@if (TempData["ErrorMessage"] != null)
-{
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-    @TempData["ErrorMessage"]
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-}
 
 <!-- Stats Cards -->
 <div class="row mb-4">
@@ -68,7 +55,7 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-info text-white">
+        <div class="card stat-card bg-warning text-dark">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -76,7 +63,7 @@ ViewData["Title"] = Model.Title;
                         <h2 class="card-title mb-0">@Model.Users.Count(u => u.IsAdmin)</h2>
                     </div>
                     <div class="stat-icon">
-                        <i class="dx-icon-preferences" style="font-size: 48px;"></i>
+                        <i class="dx-icon-favorites" style="font-size: 48px;"></i>
                     </div>
                 </div>
             </div>
@@ -84,7 +71,7 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-warning text-dark">
+        <div class="card stat-card bg-info text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -114,56 +101,33 @@ ViewData["Title"] = Model.Title;
     </div>
 </div>
 
-<!-- Details Popup -->
-<div id="detailsPopup"></div>
-
-<!-- Edit Popup -->
-<div id="editPopup"></div>
+<!-- Create Popup -->
+<div id="createPopup"></div>
 
 @section Scripts {
 <script>
-    let detailsPopup;
-    let editPopup;
+    let createPopup;
     let usersGrid;
-    let pendingDetailsData = null;
-    let pendingEditData = null;
+    let pendingCreateData = null;
     const users = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Users));
 
     $(function() {
         console.log("Users loaded:", users.length);
 
-        detailsPopup = $("#detailsPopup").dxPopup({
-            width: 900,
+        createPopup = $("#createPopup").dxPopup({
+            width: 600,
             height: "auto",
             maxHeight: "90vh",
             showTitle: true,
-            title: "User Details",
+            title: "New User",
             showCloseButton: true,
             contentTemplate: function() {
-                return $("<div>").attr("id", "detailsContent").addClass("p-3");
+                return $("<div>").attr("id", "createContent").addClass("p-3");
             },
             onShown: function() {
-                if (pendingDetailsData) {
-                    renderDetails(pendingDetailsData);
-                    pendingDetailsData = null;
-                }
-            }
-        }).dxPopup("instance");
-
-        editPopup = $("#editPopup").dxPopup({
-            width: 700,
-            height: "auto",
-            maxHeight: "90vh",
-            showTitle: true,
-            title: "Edit User",
-            showCloseButton: true,
-            contentTemplate: function() {
-                return $("<div>").attr("id", "editContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingEditData) {
-                    renderEdit(pendingEditData);
-                    pendingEditData = null;
+                if (pendingCreateData) {
+                    renderCreate();
+                    pendingCreateData = null;
                 }
             }
         }).dxPopup("instance");
@@ -185,16 +149,19 @@ ViewData["Title"] = Model.Title;
                 export: { enabled: true, fileName: "users" },
                 columns: [
                     { dataField: "Username", caption: "Username", width: 180 },
-                    { dataField: "Email", caption: "Email", width: 250 },
+                    { dataField: "Email", caption: "Email", width: 220 },
                     {
                         dataField: "IsActive",
                         caption: "Status",
                         width: 110,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            const badgeClass = options.value ? "badge bg-success" : "badge bg-secondary";
+                        cellTemplate: function(container, options) {
+                            const badgeClass = options.value ? "bg-success" : "bg-secondary";
                             const text = options.value ? "Active" : "Inactive";
-                            $("<span>").addClass(badgeClass).text(text).appendTo(container);
+                            $("<span>")
+                                .addClass("badge " + badgeClass)
+                                .text(text)
+                                .appendTo(container);
                         }
                     },
                     {
@@ -202,30 +169,18 @@ ViewData["Title"] = Model.Title;
                         caption: "Role",
                         width: 110,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            const badgeClass = options.value ? "badge bg-info" : "badge bg-secondary";
-                            const text = options.value ? "Admin" : "User";
-                            $("<span>").addClass(badgeClass).text(text).appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "LicensesCount",
-                        caption: "Licenses",
-                        width: 100,
-                        alignment: "center"
-                    },
-                    { dataField: "CreatedAt", caption: "Created", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    {
-                        dataField: "LastLoginAt",
-                        caption: "Last Login",
-                        dataType: "datetime",
-                        format: "dd/MM/yyyy HH:mm",
-                        width: 150,
                         cellTemplate: function(container, options) {
-                            const text = options.value ? new Date(options.value).toLocaleString('pl-PL') : 'Never';
-                            $("<span>").text(text).appendTo(container);
+                            const badgeClass = options.value ? "bg-warning" : "bg-secondary";
+                            const text = options.value ? "Admin" : "User";
+                            $("<span>")
+                                .addClass("badge " + badgeClass)
+                                .text(text)
+                                .appendTo(container);
                         }
                     },
+                    { dataField: "LicensesCount", caption: "Licenses", width: 100, alignment: "center" },
+                    { dataField: "CreatedAt", caption: "Created", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                    { dataField: "LastLoginAt", caption: "Last Login", dataType: "date", format: "dd/MM/yyyy", width: 110 },
                     {
                         type: "buttons",
                         width: 120,
@@ -233,15 +188,15 @@ ViewData["Title"] = Model.Title;
                             {
                                 hint: "View Details",
                                 icon: "info",
-                                onClick: function (e) {
-                                    showDetails(e.row.data);
+                                onClick: function(e) {
+                                    showUserDetailsPopup(e.row.data.Id);
                                 }
                             },
                             {
                                 hint: "Edit",
                                 icon: "edit",
-                                onClick: function (e) {
-                                    showEdit(e.row.data);
+                                onClick: function(e) {
+                                    showUserEditPopup(e.row.data.Id);
                                 }
                             }
                         ]
@@ -254,154 +209,149 @@ ViewData["Title"] = Model.Title;
         }, 200);
     });
 
-    function showDetails(user) {
-        pendingDetailsData = user;
-        detailsPopup.option("title", "User Details: " + user.Username);
-        detailsPopup.show();
+    function showCreatePopup() {
+        pendingCreateData = {};
+        createPopup.show();
     }
 
-    function renderDetails(user) {
-        const createdDate = new Date(user.CreatedAt).toLocaleString('pl-PL', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    function renderCreate() {
+        var content = '<form id="createForm">' +
+            '<div class="row">' +
+            '<div class="col-md-6">' +
+            '<div class="mb-3">' +
+            '<label class="form-label">Username *</label>' +
+            '<input type="text" class="form-control" id="userName" placeholder="Enter username" required>' +
+            '<div class="form-text">3-50 characters, letters, numbers, dots, underscores, hyphens</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+            '<div class="mb-3">' +
+            '<label class="form-label">Email *</label>' +
+            '<input type="email" class="form-control" id="userEmail" placeholder="user@example.com" required>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="row">' +
+            '<div class="col-md-6">' +
+            '<div class="mb-3">' +
+            '<label class="form-label">Password *</label>' +
+            '<input type="password" class="form-control" id="userPassword" placeholder="Enter password" required>' +
+            '<div class="form-text">Minimum 6 characters</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+            '<div class="mb-3">' +
+            '<label class="form-label">Confirm Password *</label>' +
+            '<input type="password" class="form-control" id="userConfirmPassword" placeholder="Confirm password" required>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="row">' +
+            '<div class="col-md-6">' +
+            '<div class="mb-3">' +
+            '<div class="form-check">' +
+            '<input class="form-check-input" type="checkbox" id="userIsActive" checked>' +
+            '<label class="form-check-label" for="userIsActive">Active</label>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+            '<div class="mb-3">' +
+            '<div class="form-check">' +
+            '<input class="form-check-input" type="checkbox" id="userIsAdmin">' +
+            '<label class="form-check-label" for="userIsAdmin">Administrator</label>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<hr>' +
+            '<div class="d-flex gap-2 mt-3">' +
+            '<button type="submit" class="btn btn-primary">' +
+            '<i class="dx-icon-plus"></i> Create User' +
+            '</button>' +
+            '<button type="button" class="btn btn-secondary" onclick="createPopup.hide()">' +
+            'Cancel' +
+            '</button>' +
+            '</div>' +
+            '</form>';
 
-        const lastLoginDate = user.LastLoginAt ? new Date(user.LastLoginAt).toLocaleString('pl-PL', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }) : 'Never';
+        $("#createContent").html(content);
 
-        const content = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="mb-3"><i class="dx-icon-user"></i> User Information</h6>
-                        <table class="table table-sm table-borderless">
-                            <tr><th width="40%">Username:</th><td>${user.Username}</td></tr>
-                            <tr><th>Email:</th><td>${user.Email}</td></tr>
-                            <tr><th>Status:</th><td><span class="badge bg-${user.IsActive ? 'success' : 'secondary'}">${user.IsActive ? 'Active' : 'Inactive'}</span></td></tr>
-                            <tr><th>Role:</th><td><span class="badge bg-${user.IsAdmin ? 'info' : 'secondary'}">${user.IsAdmin ? 'Administrator' : 'User'}</span></td></tr>
-                            <tr><th>Created:</th><td>${createdDate}</td></tr>
-                            <tr><th>Last Login:</th><td>${lastLoginDate}</td></tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="mb-3"><i class="dx-icon-key"></i> Licenses</h6>
-                        <p><strong>Total Licenses:</strong> ${user.LicensesCount}</p>
-                        <a href="/Licenses/Index?userId=${user.Id}" class="btn btn-sm btn-outline-primary">
-                            View User Licenses
-                        </a>
-                        <hr>
-                        <button class="btn btn-primary btn-sm" onclick="closeDetailsAndEdit(${user.Id})">
-                            <i class="dx-icon-edit"></i> Edit User
-                        </button>
-                    </div>
-                </div>
-            `;
+        // Form validation and submission
+        $("#createForm").on("submit", function(e) {
+            e.preventDefault();
 
-        $("#detailsContent").html(content);
-    }
+            const username = $("#userName").val().trim();
+            const email = $("#userEmail").val().trim();
+            const password = $("#userPassword").val();
+            const confirmPassword = $("#userConfirmPassword").val();
+            const isActive = $("#userIsActive").is(":checked");
+            const isAdmin = $("#userIsAdmin").is(":checked");
 
-    function showEdit(user) {
-        pendingEditData = user;
-        editPopup.option("title", "Edit User: " + user.Username);
-        editPopup.show();
-    }
-
-    function renderEdit(user) {
-        const content = `
-                <form id="editForm">
-                    <input type="hidden" id="editUserId" value="${user.Id}" />
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" class="form-control" value="${user.Username}" readonly />
-                        <small class="text-muted">Username cannot be changed</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="editEmail" value="${user.Email}" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="editIsActive" ${user.IsActive ? 'checked' : ''} />
-                            <label class="form-check-label">Active</label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="editIsAdmin" ${user.IsAdmin ? 'checked' : ''} />
-                            <label class="form-check-label">Administrator</label>
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary" onclick="saveUser()">
-                            <i class="dx-icon-save"></i> Save Changes
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="editPopup.hide()">
-                            <i class="dx-icon-close"></i> Cancel
-                        </button>
-                    </div>
-                </form>
-            `;
-
-        $("#editContent").html(content);
-    }
-
-    function closeDetailsAndEdit(userId) {
-        detailsPopup.hide();
-        const user = users.find(u => u.Id === userId);
-        if (user) {
-            showEdit(user);
-        }
-    }
-
-    async function saveUser() {
-        const data = {
-            email: $('#editEmail').val(),
-            isActive: $('#editIsActive').is(':checked'),
-            isAdmin: $('#editIsAdmin').is(':checked')
-        };
-
-        if (!data.email) {
-            DevExpress.ui.notify("Please fill all required fields", "error", 3000);
-            return;
-        }
-
-        const userId = parseInt($('#editUserId').val());
-
-        try {
-            const response = await fetch(`/api/users/${userId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to update user');
+            if (!username || !email || !password || !confirmPassword) {
+                DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
+                return;
             }
 
-            DevExpress.ui.notify("User updated successfully", "success", 2000);
-            editPopup.hide();
-            setTimeout(function() {
-                window.location.reload();
-            }, 2000);
-        } catch (error) {
-            console.error('Error updating user:', error);
-            DevExpress.ui.notify(error.message, "error", 3000);
-        }
+            if (username.length < 3 || username.length > 50) {
+                DevExpress.ui.notify("Username must be 3-50 characters", "error", 2000);
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+                DevExpress.ui.notify("Username can only contain letters, numbers, dots, underscores and hyphens", "error", 2000);
+                return;
+            }
+
+            if (password.length < 6) {
+                DevExpress.ui.notify("Password must be at least 6 characters", "error", 2000);
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                DevExpress.ui.notify("Passwords do not match", "error", 2000);
+                return;
+            }
+
+            const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            if (!emailRegex.test(email)) {
+                DevExpress.ui.notify("Invalid email format", "error", 2000);
+                return;
+            }
+
+            submitCreate({
+                username: username,
+                email: email,
+                password: password,
+                isActive: isActive,
+                isAdmin: isAdmin
+            });
+        });
+    }
+
+    function submitCreate(data) {
+        $.ajax({
+            url: '@Url.Action("Create", "Users")',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
+            data: JSON.stringify(data),
+            success: function(result) {
+                if (result.success) {
+                    DevExpress.ui.notify("User created successfully!", "success", 2000);
+                    createPopup.hide();
+                    location.reload();
+                } else {
+                    DevExpress.ui.notify(result.message || "Failed to create user", "error", 3000);
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || "An error occurred while creating the user";
+                DevExpress.ui.notify(message, "error", 3000);
+            }
+        });
     }
 </script>
 }

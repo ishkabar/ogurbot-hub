@@ -54,4 +54,39 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
+
+app.MapFallback("/api/{**path}", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
+{
+    var httpClient = httpClientFactory.CreateClient();
+    var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
+    
+    var targetUrl = $"{apiBaseUrl}{context.Request.Path}{context.Request.QueryString}";
+    
+    var requestMessage = new HttpRequestMessage(
+        new HttpMethod(context.Request.Method), 
+        targetUrl);
+    
+    foreach (var header in context.Request.Headers)
+    {
+        requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.AsEnumerable());
+    }
+    
+    if (context.Request.ContentLength > 0)
+    {
+        requestMessage.Content = new StreamContent(context.Request.Body);
+    }
+    
+    var response = await httpClient.SendAsync(requestMessage);
+    
+    context.Response.StatusCode = (int)response.StatusCode;
+    
+    foreach (var header in response.Headers)
+    {
+        context.Response.Headers.TryAdd(header.Key, header.Value.ToArray());
+    }
+    
+    await response.Content.CopyToAsync(context.Response.Body);
+});
+
+
 app.Run();

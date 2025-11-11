@@ -44,6 +44,8 @@ public static class DependencyInjection
         services.AddScoped<CheckForUpdatesQueryHandler>();
         services.AddScoped<GetUsersQueryHandler>();
         services.AddScoped<GetUserByIdQueryHandler>();
+        services.AddScoped<CreateUserCommandHandler>();
+        
 
         // Register Command Handlers
         services.AddScoped<CreateApplicationCommandHandler>();
@@ -54,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<RevokeLicenseCommandHandler>();
         services.AddScoped<ValidateLicenseCommandHandler>();
         services.AddScoped<ReceiveTelemetryCommandHandler>();
+        services.AddScoped<CreateUserCommandHandler>();
         services.AddScoped<UpdateUserCommandHandler>();
 
         return services;

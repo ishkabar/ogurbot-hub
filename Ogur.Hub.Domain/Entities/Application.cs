@@ -166,4 +166,22 @@ public sealed class Application : AggregateRoot<int>
     {
         return ApiKey.Verify(rawKey);
     }
+    
+    /// <summary>
+    /// Updates application properties
+    /// </summary>
+    /// <param name="name">Application name</param>
+    /// <param name="displayName">Display name</param>
+    /// <param name="currentVersion">Current version</param>
+    /// <param name="description">Description</param>
+    /// <param name="isActive">Whether application is active</param>
+    public void Update(string name, string displayName, string currentVersion, string? description, bool isActive)
+    {
+        Name = name;
+        DisplayName = displayName;
+        CurrentVersion = currentVersion;
+        Description = description;
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

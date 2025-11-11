@@ -49,7 +49,7 @@ public sealed class ApplicationsController : BaseController
             var viewModel = new ApplicationsViewModel
             {
                 Title = "Applications",
-                Description = "Manage registered applications",
+                Description = "Manage and monitor applications",
                 Username = Username,
                 IsAdmin = IsAdmin,
                 Applications = applications
@@ -65,7 +65,7 @@ public sealed class ApplicationsController : BaseController
             var viewModel = new ApplicationsViewModel
             {
                 Title = "Applications",
-                Description = "Manage registered applications",
+                Description = "Manage and monitor applications",
                 Username = Username,
                 IsAdmin = IsAdmin,
                 Applications = new List<ApplicationDto>()
@@ -76,119 +76,80 @@ public sealed class ApplicationsController : BaseController
     }
 
     /// <summary>
+    /// Creates a new application
+    /// </summary>
+    /// <param name="request">Application creation request</param>
+    /// <returns>JSON result</returns>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateApplicationRequest request)
+    {
+        try
+        {
+            if (!IsAdmin)
+            {
+                return Json(new { success = false, message = "Only administrators can create applications" });
+            }
+
+            var application = await _hubApiClient.CreateApplicationAsync(AuthToken!, request);
+            
+            if (application == null)
+            {
+                return Json(new { success = false, message = "Failed to create application" });
+            }
+
+            _logger.LogInformation("Application {Name} created by user {Username}", 
+                request.Name, Username);
+
+            return Json(new { success = true, data = application });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating application {Name}", request.Name);
+            return Json(new { success = false, message = "An error occurred while creating the application" });
+        }
+    }
+
+    /// <summary>
     /// Displays application details
     /// </summary>
     /// <param name="id">Application ID</param>
     /// <returns>Application details view</returns>
     [HttpGet]
-    public async Task<IActionResult> Details(int id)
+    public IActionResult Details(int id)
     {
-        try
+        var viewModel = new ApplicationDetailsViewModel
         {
-            var applications = await _hubApiClient.GetApplicationsAsync(AuthToken!);
-            var application = applications?.FirstOrDefault(a => a.Id == id);
-            
-            if (application == null)
-            {
-                return NotFound();
-            }
-
-            var viewModel = new ApplicationDetailsViewModel
-            {
-                Title = "Application Details",
-                Description = $"Details for {application.DisplayName}",
-                Username = Username,
-                IsAdmin = IsAdmin,
-                EntityId = id,
-                ControllerName = "Applications",
-                Application = new ApplicationViewDto
-                {
-                    Id = application.Id,
-                    Name = application.Name,
-                    DisplayName = application.DisplayName,
-                    Description = application.Description,
-                    CurrentVersion = application.CurrentVersion,
-                    IsActive = application.IsActive,
-                    CreatedAt = application.CreatedAt,
-                    ApiKey = "***hidden***"
-                },
-                LicensesCount = 0,
-                ActiveLicensesCount = 0,
-                DevicesCount = 0,
-                ConnectedDevicesCount = 0
-            };
-            
-            return View(viewModel);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving application details for id {Id}", id);
-            return NotFound();
-        }
-    }
-
-    /// <summary>
-    /// Displays create application form
-    /// </summary>
-    /// <returns>Create application view</returns>
-    [HttpGet]
-    public IActionResult Create()
-    {
-        var viewModel = new ApplicationCreateViewModel
-        {
-            Title = "New Application",
-            Description = "Register a new application",
+            Title = "Application Details",
+            Description = "View application details and statistics",
             Username = Username,
-            IsAdmin = IsAdmin
+            IsAdmin = IsAdmin,
+            ControllerName = "Applications",
+            EntityId = id,
+            ApplicationId = id
         };
-    
+        
         return View(viewModel);
     }
 
     /// <summary>
-    /// Displays edit application form
+    /// Displays application edit page
     /// </summary>
     /// <param name="id">Application ID</param>
-    /// <returns>Edit application view</returns>
+    /// <returns>Application edit view</returns>
     [HttpGet]
-    public async Task<IActionResult> Edit(int id)
+    public IActionResult Edit(int id)
     {
-        try
+        var viewModel = new ApplicationEditViewModel
         {
-            var applications = await _hubApiClient.GetApplicationsAsync(AuthToken!);
-            var application = applications?.FirstOrDefault(a => a.Id == id);
-            
-            if (application == null)
-            {
-                return NotFound();
-            }
-
-            var viewModel = new ApplicationEditViewModel
-            {
-                Title = "Edit Application",
-                Description = $"Edit {application.DisplayName}",
-                Username = Username,
-                IsAdmin = IsAdmin,
-                EntityId = id,
-                ControllerName = "Applications",
-                Application = new ApplicationViewDto
-                {
-                    Id = application.Id,
-                    Name = application.Name,
-                    DisplayName = application.DisplayName,
-                    Description = application.Description,
-                    CurrentVersion = application.CurrentVersion,
-                    IsActive = application.IsActive,
-                    CreatedAt = application.CreatedAt
-                }
-            };
-            
-            return View(viewModel);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving application for edit, id {Id}", id);
-            return NotFound();
-        }
+            Title = "Edit Application",
+            Description = "Update application information",
+            Username = Username,
+            IsAdmin = IsAdmin,
+            ControllerName = "Applications",
+            EntityId = id,
+            ApplicationId = id
+        };
+        
+        return View(viewModel);
     }
 }

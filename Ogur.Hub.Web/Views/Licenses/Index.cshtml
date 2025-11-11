@@ -1,6 +1,6 @@
 @model LicensesViewModel
 @{
-ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Title;
 }
 
 <!-- Page Header -->
@@ -12,9 +12,9 @@ ViewData["Title"] = Model.Title;
                 <p class="text-muted">@Model.Description</p>
             </div>
             <div>
-                <a asp-action="Create" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" onclick="showCreatePopup()">
                     <i class="dx-icon-plus"></i> New License
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -44,7 +44,7 @@ ViewData["Title"] = Model.Title;
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="card-subtitle mb-2">Active Licenses</h6>
-                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 1)</h2>
+                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 1)</h2> <!-- Active -->
                     </div>
                     <div class="stat-icon">
                         <i class="dx-icon-check" style="font-size: 48px;"></i>
@@ -60,7 +60,7 @@ ViewData["Title"] = Model.Title;
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="card-subtitle mb-2">Expired Licenses</h6>
-                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 2)</h2>
+                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 2)</h2> <!-- Expired -->
                     </div>
                     <div class="stat-icon">
                         <i class="dx-icon-close" style="font-size: 48px;"></i>
@@ -101,55 +101,36 @@ ViewData["Title"] = Model.Title;
     </div>
 </div>
 
-<!-- Details Popup -->
-<div id="detailsPopup"></div>
-
-<!-- Revoke Popup -->
-<div id="revokePopup"></div>
+<!-- Create Popup -->
+<div id="createPopup"></div>
 
 @section Scripts {
 <script>
-    let detailsPopup;
-    let revokePopup;
+    let createPopup;
     let licensesGrid;
-    let pendingDetailsData = null;
-    let pendingRevokeData = null;
+    let pendingCreateData = null;
     const licenses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Licenses));
+    
+    let applications = [];
+    let users = [];
 
     $(function() {
         console.log("Licenses loaded:", licenses.length);
 
-        detailsPopup = $("#detailsPopup").dxPopup({
-            width: 900,
+        createPopup = $("#createPopup").dxPopup({
+            width: 600,
             height: "auto",
             maxHeight: "90vh",
             showTitle: true,
-            title: "License Details",
+            title: "New License",
             showCloseButton: true,
             contentTemplate: function() {
-                return $("<div>").attr("id", "detailsContent").addClass("p-3");
+                return $("<div>").attr("id", "createContent").addClass("p-3");
             },
             onShown: function() {
-                if (pendingDetailsData) {
-                    renderDetails(pendingDetailsData);
-                    pendingDetailsData = null;
-                }
-            }
-        }).dxPopup("instance");
-
-        revokePopup = $("#revokePopup").dxPopup({
-            width: 500,
-            height: "auto",
-            showTitle: true,
-            title: "Revoke License",
-            showCloseButton: true,
-            contentTemplate: function() {
-                return $("<div>").attr("id", "revokeContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingRevokeData) {
-                    renderRevoke(pendingRevokeData);
-                    pendingRevokeData = null;
+                if (pendingCreateData) {
+                    renderCreate();
+                    pendingCreateData = null;
                 }
             }
         }).dxPopup("instance");
@@ -186,7 +167,8 @@ ViewData["Title"] = Model.Title;
                         alignment: "center",
                         cellTemplate: function(container, options) {
                             const text = options.data.RegisteredDevices + " / " + options.data.MaxDevices;
-                            $("<span>").text(text).appendTo(container);
+                            const color = options.data.RegisteredDevices >= options.data.MaxDevices ? "text-danger" : "text-success";
+                            $("<span>").addClass(color).text(text).appendTo(container);
                         }
                     },
                     { dataField: "IssuedAt", caption: "Issued", dataType: "date", format: "dd/MM/yyyy", width: 110 },
@@ -209,6 +191,15 @@ ViewData["Title"] = Model.Title;
                             } else if (options.value === 3) {
                                 badgeClass = "bg-dark";
                                 text = "Revoked";
+                            } else if (options.value === 4) {
+                                badgeClass = "bg-warning text-dark";
+                                text = "Pending";
+                            } else if (options.value === 5) {
+                                badgeClass = "bg-secondary";
+                                text = "Suspended";
+                            } else if (options.value === 6) {
+                                badgeClass = "bg-secondary";
+                                text = "Inactive";
                             }
 
                             $("<span>")
@@ -226,17 +217,14 @@ ViewData["Title"] = Model.Title;
                                 hint: "View Details",
                                 icon: "info",
                                 onClick: function(e) {
-                                    showDetails(e.row.data);
+                                    showLicenseDetails(e.row.data.Id);
                                 }
                             },
                             {
-                                hint: "Revoke",
-                                icon: "clear",
-                                visible: function(e) {
-                                    return e.row.data.Status === 1;
-                                },
+                                hint: "Edit",
+                                icon: "edit",
                                 onClick: function(e) {
-                                    showRevoke(e.row.data);
+                                    showLicenseEdit(e.row.data.Id);
                                 }
                             }
                         ]
@@ -249,98 +237,201 @@ ViewData["Title"] = Model.Title;
         }, 200);
     });
 
-    function showDetails(license) {
-        pendingDetailsData = license;
-        detailsPopup.option("title", "License Details: " + license.LicenseKey);
-        detailsPopup.show();
+    function showCreatePopup() {
+        pendingCreateData = {};
+        loadApplicationsAndUsers();
+        createPopup.show();
     }
 
-    function renderDetails(license) {
-        const issuedDate = new Date(license.IssuedAt).toLocaleDateString('pl-PL');
-        const expiresDate = new Date(license.ExpiresAt).toLocaleDateString('pl-PL');
+    function loadApplicationsAndUsers() {
+        $.ajax({
+            url: '/api/applications', 
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token') 
+            }
+        })
+            .done(function(result) {
+                console.log("Applications API Response:", result);
 
-        let statusBadge = "bg-secondary";
-        let statusText = "Unknown";
-        if (license.Status === 1) {
-            statusBadge = "bg-success";
-            statusText = "Active";
-        } else if (license.Status === 2) {
-            statusBadge = "bg-danger";
-            statusText = "Expired";
-        } else if (license.Status === 3) {
-            statusBadge = "bg-dark";
-            statusText = "Revoked";
+                applications = result.data || result || [];
+                console.log("Applications loaded:", applications);
+                updateApplicationDropdown();
+            })
+            .fail(function(xhr, status, error) {
+                console.error("Failed to load applications:", xhr.responseJSON);
+                DevExpress.ui.notify("Failed to load applications", "error", 2000);
+            });
+
+        $.ajax({
+            url: '/api/users',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')  
+            }
+        })
+            .done(function(result) {
+                console.log("Users API Response:", result);
+
+                users = result.data || result.value || result || [];
+                console.log("Users loaded:", users);
+                updateUserDropdown();
+            })
+            .fail(function(xhr, status, error) {
+                console.error("Failed to load users:", xhr.responseJSON);
+                DevExpress.ui.notify("Failed to load users", "error", 2000);
+            });
+    }
+
+    function updateApplicationDropdown() {
+        const select = $("#appSelect");
+        if (select.length) {
+            select.empty().append('<option value="">Select Application</option>');
+            applications.forEach(app => {
+                select.append(`<option value="${app.Id}">${app.DisplayName}</option>`);
+            });
         }
+    }
 
+    function updateUserDropdown() {
+        const select = $("#userSelect");
+        if (select.length) {
+            select.empty().append('<option value="">Select User</option>');
+            users.forEach(user => {
+                select.append(`<option value="${user.Id}">${user.Username} (${user.Email})</option>`);
+            });
+        }
+    }
+
+    function renderCreate() {
         const content = `
+            <form id="createForm">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6 class="mb-3"><i class="dx-icon-key"></i> License Information</h6>
-                        <table class="table table-sm table-borderless">
-                            <tr><th width="40%">License Key:</th><td><code>${license.LicenseKey}</code></td></tr>
-                            <tr><th>Application:</th><td>${license.ApplicationName}</td></tr>
-                            <tr><th>Status:</th><td><span class="badge ${statusBadge}">${statusText}</span></td></tr>
-                            <tr><th>Issued:</th><td>${issuedDate}</td></tr>
-                            <tr><th>Expires:</th><td>${expiresDate}</td></tr>
-                            <tr><th>Validations:</th><td>${license.ValidationCount}</td></tr>
-                        </table>
+                        <div class="mb-3">
+                            <label class="form-label">Application *</label>
+                            <select class="form-select" id="appSelect" required>
+                                <option value="">Loading applications...</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="mb-3"><i class="dx-icon-runner"></i> Devices</h6>
-                        <p><strong>Registered:</strong> ${license.RegisteredDevices} / ${license.MaxDevices}</p>
-                        <hr>
-                        ${license.Status === 1 ? `
-                        <button class="btn btn-danger btn-sm" onclick="closeDetailsAndRevoke(${license.Id})">
-                            <i class="dx-icon-clear"></i> Revoke License
-                        </button>` : ''}
+                        <div class="mb-3">
+                            <label class="form-label">User *</label>
+                            <select class="form-select" id="userSelect" required>
+                                <option value="">Loading users...</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-            `;
-
-        $("#detailsContent").html(content);
-    }
-
-    function showRevoke(license) {
-        pendingRevokeData = license;
-        revokePopup.option("title", "Revoke License");
-        revokePopup.show();
-    }
-
-    function renderRevoke(license) {
-        const content = `
-                <div class="alert alert-warning">
-                    <i class="dx-icon-warning"></i> <strong>Warning!</strong> This action cannot be undone.
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Max Devices *</label>
+                            <input type="number" class="form-control" id="maxDevices" value="2" min="1" max="10" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="datetime-local" class="form-control" id="startDate">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="datetime-local" class="form-control" id="endDate">
+                        </div>
+                    </div>
                 </div>
-                <p>Are you sure you want to revoke this license?</p>
-                <table class="table table-sm">
-                    <tr><th>License Key:</th><td><code>${license.LicenseKey}</code></td></tr>
-                    <tr><th>Application:</th><td>${license.ApplicationName}</td></tr>
-                    <tr><th>Devices:</th><td>${license.RegisteredDevices} registered</td></tr>
-                </table>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="neverExpires">
+                            <label class="form-check-label" for="neverExpires">Never Expires</label>
+                        </div>
+                    </div>
+                </div>
+                <hr>
                 <div class="d-flex gap-2 mt-3">
-                    <button type="button" class="btn btn-danger" onclick="confirmRevoke(${license.Id})">
-                        <i class="dx-icon-clear"></i> Yes, Revoke License
+                    <button type="submit" class="btn btn-primary">
+                        <i class="dx-icon-plus"></i> Create License
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="revokePopup.hide()">
+                    <button type="button" class="btn btn-secondary" onclick="createPopup.hide()">
                         Cancel
                     </button>
                 </div>
-            `;
+            </form>
+        `;
 
-        $("#revokeContent").html(content);
+        $("#createContent").html(content);
+
+        // Set default start date to now
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        $("#startDate").val(now.toISOString().slice(0, 16));
+
+        // Handle never expires checkbox
+        $("#neverExpires").on("change", function() {
+            if (this.checked) {
+                $("#endDate").val("").prop("disabled", true);
+            } else {
+                $("#endDate").prop("disabled", false);
+            }
+        });
+
+        // Update dropdowns if data is already loaded
+        updateApplicationDropdown();
+        updateUserDropdown();
+
+        // Form submission
+        $("#createForm").on("submit", function(e) {
+            e.preventDefault();
+            
+            const applicationId = $("#appSelect").val();
+            const userId = $("#userSelect").val();
+            const maxDevices = parseInt($("#maxDevices").val());
+            const startDate = $("#startDate").val();
+            const endDate = $("#neverExpires").is(":checked") ? null : $("#endDate").val();
+
+            if (!applicationId || !userId || !maxDevices) {
+                DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
+                return;
+            }
+
+            submitCreate({
+                applicationId: parseInt(applicationId),
+                userId: parseInt(userId),
+                maxDevices: maxDevices,
+                startDate: startDate ? new Date(startDate).toISOString() : null,
+                endDate: endDate ? new Date(endDate).toISOString() : null
+            });
+        });
     }
 
-    function closeDetailsAndRevoke(licenseId) {
-        detailsPopup.hide();
-        const license = licenses.find(l => l.Id === licenseId);
-        if (license) {
-            showRevoke(license);
-        }
-    }
-
-    function confirmRevoke(licenseId) {
-        DevExpress.ui.notify("Revoke functionality not yet implemented", "info", 2000);
-        revokePopup.hide();
+    function submitCreate(data) {
+        $.ajax({
+            url: '@Url.Action("Create", "Licenses")',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
+            data: JSON.stringify(data),
+            success: function(result) {
+                if (result.success) {
+                    DevExpress.ui.notify("License created successfully!", "success", 2000);
+                    createPopup.hide();
+                    location.reload();
+                } else {
+                    DevExpress.ui.notify(result.message || "Failed to create license", "error", 3000);
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || "An error occurred while creating the license";
+                DevExpress.ui.notify(message, "error", 3000);
+            }
+        });
     }
 </script>
 }

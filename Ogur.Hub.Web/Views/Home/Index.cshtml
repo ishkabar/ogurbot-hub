@@ -1,242 +1,326 @@
+@model DashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = Model.Title;
 }
 
-<div class="dashboard-container">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2>Dashboard Overview</h2>
-            <p class="text-muted">Welcome to Ogur.Hub Admin Panel</p>
-        </div>
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>@Model.Title</h2>
+        <p class="text-muted">@Model.Description</p>
     </div>
+</div>
 
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card stat-card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-subtitle mb-2">Total Applications</h6>
-                            <h2 class="card-title mb-0" id="totalApps">0</h2>
-                        </div>
-                        <div class="stat-icon">
-                            <i class="dx-icon-box" style="font-size: 48px;"></i>
-                        </div>
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Applications</h6>
+                        <h2 class="card-title mb-0 text-primary">@Model.Stats.TotalApplications</h2>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card stat-card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-subtitle mb-2">Active Licenses</h6>
-                            <h2 class="card-title mb-0" id="activeLicenses">0</h2>
-                        </div>
-                        <div class="stat-icon">
-                            <i class="dx-icon-key" style="font-size: 48px;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card stat-card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-subtitle mb-2">Connected Devices</h6>
-                            <h2 class="card-title mb-0" id="connectedDevices">0</h2>
-                        </div>
-                        <div class="stat-icon">
-                            <i class="dx-icon-runner" style="font-size: 48px;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card stat-card bg-warning text-dark">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-subtitle mb-2">Commands Today</h6>
-                            <h2 class="card-title mb-0" id="commandsToday">0</h2>
-                        </div>
-                        <div class="stat-icon">
-                            <i class="dx-icon-export" style="font-size: 48px;"></i>
-                        </div>
+                    <div class="stat-icon text-primary opacity-50">
+                        <i class="dx-icon-folder" style="font-size: 48px;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="row mb-4">
-        <div class="col-lg-8 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Device Activity (Last 7 Days)</h5>
-                </div>
-                <div class="card-body">
-                    <div id="activityChart" style="height: 400px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">License Status</h5>
-                </div>
-                <div class="card-body">
-                    <div id="licenseChart" style="height: 400px;"></div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Active Licenses</h6>
+                        <h2 class="card-title mb-0 text-success">@Model.Stats.ActiveLicenses</h2>
+                    </div>
+                    <div class="stat-icon text-success opacity-50">
+                        <i class="dx-icon-key" style="font-size: 48px;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Devices Table -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Devices</h5>
-                    <a asp-controller="Devices" asp-action="Index" class="btn btn-sm btn-primary">View All</a>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Connected Devices</h6>
+                        <h2 class="card-title mb-0 text-info">@Model.Stats.ConnectedDevices</h2>
+                    </div>
+                    <div class="stat-icon text-info opacity-50">
+                        <i class="dx-icon-runner" style="font-size: 48px;"></i>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div id="recentDevicesGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Commands Today</h6>
+                        <h2 class="card-title mb-0 text-warning">@Model.Stats.CommandsToday</h2>
+                    </div>
+                    <div class="stat-icon text-warning opacity-50">
+                        <i class="dx-icon-sendfilled" style="font-size: 48px;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Additional Stats Row -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Users</h6>
+                        <h3 class="card-title mb-0 text-primary">@Model.Stats.TotalUsers</h3>
+                    </div>
+                    <div class="stat-icon text-primary opacity-50">
+                        <i class="dx-icon-user" style="font-size: 36px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Devices</h6>
+                        <h3 class="card-title mb-0 text-success">@Model.Stats.TotalDevices</h3>
+                    </div>
+                    <div class="stat-icon text-success opacity-50">
+                        <i class="dx-icon-box" style="font-size: 36px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-danger border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Expired Licenses</h6>
+                        <h3 class="card-title mb-0 text-danger">@Model.Stats.ExpiredLicenses</h3>
+                    </div>
+                    <div class="stat-icon text-danger opacity-50">
+                        <i class="dx-icon-close" style="font-size: 36px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card border-start border-secondary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Revoked Licenses</h6>
+                        <h3 class="card-title mb-0 text-secondary">@Model.Stats.RevokedLicenses</h3>
+                    </div>
+                    <div class="stat-icon text-secondary opacity-50">
+                        <i class="dx-icon-lock" style="font-size: 36px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-lg-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Activity Last 7 Days</h5>
+            </div>
+            <div class="card-body">
+                <div id="activityChart"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Devices</h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="recentDevicesList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
-    <script>
-        $(function() {
-            // Load stats
-            loadDashboardStats();
+<script>
+    const authToken = '@Context.Session.GetString("AuthToken")';
+    let activityChart;
+    const apiBaseUrl = '@ViewData["ApiBaseUrl"]';
+
+    $(function() {
+        console.log("Dashboard initializing...");
+        loadActivityData();
+        loadRecentDevices();
+    });
+
+    function loadActivityData() {
+        $.ajax({
+            url: apiBaseUrl + '/api/dashboard/activity',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken
+            },
+            success: function(data) {
+                console.log("Activity data loaded:", data);
+                renderActivityChart(data);
+            },
+            error: function(xhr, status, error) {
+                console.error("Failed to load activity data:", error);
+                renderActivityChart(getEmptyActivityData());
+            }
+        });
+    }
+
+    function renderActivityChart(data) {
+        activityChart = $("#activityChart").dxChart({
+            dataSource: data,
+            commonSeriesSettings: {
+                argumentField: "day",
+                type: "bar"
+            },
+            series: [
+                { valueField: "connections", name: "Connections", color: "#22c55e" },
+                { valueField: "commands", name: "Commands", color: "#ef4444" }
+            ],
+            legend: {
+                verticalAlignment: "bottom",
+                horizontalAlignment: "center"
+            },
+            title: {
+                text: "Connections and Commands",
+                font: { size: 16 }
+            },
+            tooltip: {
+                enabled: true,
+                customizeTooltip: function(arg) {
+                    return {
+                        text: arg.seriesName + ": " + arg.valueText
+                    };
+                }
+            },
+            valueAxis: {
+                title: { text: "Count" }
+            }
+        }).dxChart("instance");
+    }
+
+    function getEmptyActivityData() {
+        return [
+            { day: "Mon", connections: 0, commands: 0 },
+            { day: "Tue", connections: 0, commands: 0 },
+            { day: "Wed", connections: 0, commands: 0 },
+            { day: "Thu", connections: 0, commands: 0 },
+            { day: "Fri", connections: 0, commands: 0 },
+            { day: "Sat", connections: 0, commands: 0 },
+            { day: "Sun", connections: 0, commands: 0 }
+        ];
+    }
+
+    function loadRecentDevices() {
+        $.ajax({
+            url: apiBaseUrl + '/api/dashboard/recent-devices',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken
+            },
+            success: function(data) {
+                console.log("Recent devices loaded:", data);
+                renderRecentDevices(data);
+            },
+            error: function(xhr, status, error) {
+                console.error("Failed to load recent devices:", error);
+                renderRecentDevices([]);
+            }
+        });
+    }
+
+    function renderRecentDevices(devices) {
+        const container = $("#recentDevicesList");
+        container.empty();
+
+        if (!devices || devices.length === 0) {
+            container.html('<div class="p-3 text-center"><p class="text-muted mb-0">No recent devices</p></div>');
+            return;
+        }
+
+        const list = $('<div class="list-group list-group-flush">');
+
+        devices.forEach(function(device, index) {
+            const statusClass = device.status === "Online" ? "success" : "secondary";
+            const statusIcon = device.status === "Online" ? "check" : "close";
             
-            // Initialize Activity Chart
-            $("#activityChart").dxChart({
-                dataSource: [
-                    { day: "Mon", connections: 45, commands: 123 },
-                    { day: "Tue", connections: 52, commands: 156 },
-                    { day: "Wed", connections: 48, commands: 134 },
-                    { day: "Thu", connections: 61, commands: 178 },
-                    { day: "Fri", connections: 55, commands: 165 },
-                    { day: "Sat", connections: 38, commands: 89 },
-                    { day: "Sun", connections: 32, commands: 67 }
-                ],
-                commonSeriesSettings: {
-                    argumentField: "day",
-                    type: "bar"
-                },
-                series: [
-                    { valueField: "connections", name: "Connections" },
-                    { valueField: "commands", name: "Commands" }
-                ],
-                legend: {
-                    verticalAlignment: "bottom",
-                    horizontalAlignment: "center"
-                },
-                title: {
-                    text: ""
-                },
-                tooltip: {
-                    enabled: true
-                }
-            });
+            const lastSeen = new Date(device.lastSeen);
+            const now = new Date();
+            const diffMinutes = Math.floor((now - lastSeen) / 60000);
+            
+            let timeAgo;
+            if (diffMinutes < 1) {
+                timeAgo = "Just now";
+            } else if (diffMinutes < 60) {
+                timeAgo = diffMinutes + " min ago";
+            } else if (diffMinutes < 1440) {
+                timeAgo = Math.floor(diffMinutes / 60) + "h ago";
+            } else {
+                timeAgo = Math.floor(diffMinutes / 1440) + "d ago";
+            }
 
-            // Initialize License Pie Chart
-            $("#licenseChart").dxPieChart({
-                dataSource: [
-                    { status: "Active", count: 145 },
-                    { status: "Expired", count: 23 },
-                    { status: "Pending", count: 12 }
-                ],
-                series: [{
-                    argumentField: "status",
-                    valueField: "count",
-                    label: {
-                        visible: true,
-                        connector: {
-                            visible: true
-                        },
-                        customizeText: function(arg) {
-                            return arg.argumentText + ": " + arg.valueText;
-                        }
-                    }
-                }],
-                legend: {
-                    horizontalAlignment: "center",
-                    verticalAlignment: "bottom"
-                }
-            });
+            const item = $(`
+                <div class="list-group-item border-0 border-bottom" style="background-color: transparent;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1 me-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="dx-icon-runner me-2 text-muted"></i>
+                                <h6 class="mb-0">${device.deviceId}</h6>
+                            </div>
+                            <small class="text-muted d-block mb-1">
+                                <i class="dx-icon-product me-1"></i>${device.applicationName}
+                            </small>
+                            <small class="text-muted">
+                                <i class="dx-icon-clock me-1"></i>${timeAgo}
+                            </small>
+                        </div>
+                        <div>
+                            <span class="badge bg-${statusClass}">
+                                <i class="dx-icon-${statusIcon}"></i> ${device.status}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `);
 
-            // Initialize Recent Devices Grid
-            $("#recentDevicesGrid").dxDataGrid({
-                dataSource: [
-                    { 
-                        id: 1, 
-                        deviceId: "DEV-001", 
-                        applicationName: "Sentinel Bot", 
-                        lastSeen: new Date(Date.now() - 300000),
-                        status: "Online"
-                    },
-                    { 
-                        id: 2, 
-                        deviceId: "DEV-002", 
-                        applicationName: "Monitor App", 
-                        lastSeen: new Date(Date.now() - 1800000),
-                        status: "Online"
-                    },
-                    { 
-                        id: 3, 
-                        deviceId: "DEV-003", 
-                        applicationName: "Sentinel Bot", 
-                        lastSeen: new Date(Date.now() - 86400000),
-                        status: "Offline"
-                    }
-                ],
-                columns: [
-                    { dataField: "deviceId", caption: "Device ID" },
-                    { dataField: "applicationName", caption: "Application" },
-                    { 
-                        dataField: "lastSeen", 
-                        caption: "Last Seen",
-                        dataType: "datetime",
-                        format: "dd/MM/yyyy HH:mm"
-                    },
-                    { 
-                        dataField: "status", 
-                        caption: "Status",
-                        cellTemplate: function(container, options) {
-                            var statusClass = options.value === "Online" ? "badge bg-success" : "badge bg-secondary";
-                            $("<span>").addClass(statusClass).text(options.value).appendTo(container);
-                        }
-                    }
-                ],
-                showBorders: true,
-                showRowLines: true,
-                rowAlternationEnabled: true,
-                hoverStateEnabled: true
-            });
+            list.append(item);
         });
 
-        function loadDashboardStats() {
-            // TODO: Load real stats from API
-            $("#totalApps").text("12");
-            $("#activeLicenses").text("145");
-            $("#connectedDevices").text("87");
-            $("#commandsToday").text("456");
-        }
-    </script>
+        container.append(list);
+    }
+</script>
 }

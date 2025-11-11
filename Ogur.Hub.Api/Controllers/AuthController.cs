@@ -90,6 +90,8 @@ public sealed class AuthController : ControllerBase
         user.RecordSuccessfulLogin();
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        
+
         var token = _tokenService.GenerateToken(user.Id, user.Username, user.IsAdmin);
         var expirationMinutes = int.Parse(HttpContext.RequestServices
             .GetRequiredService<IConfiguration>()["Jwt:ExpirationMinutes"] ?? "1440");

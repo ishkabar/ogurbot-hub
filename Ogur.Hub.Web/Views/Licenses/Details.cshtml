@@ -135,7 +135,10 @@
             const statusMap = {
                 1: { class: 'bg-success', text: 'Active' },
                 2: { class: 'bg-danger', text: 'Expired' },
-                3: { class: 'bg-dark', text: 'Revoked' }
+                3: { class: 'bg-dark', text: 'Revoked' },
+                4: { class: 'bg-warning text-dark', text: 'Pending' },
+                5: { class: 'bg-secondary', text: 'Suspended' },
+                6: { class: 'bg-secondary', text: 'Inactive' }
             };
             const s = statusMap[status] || { class: 'bg-secondary', text: 'Unknown' };
             return `<span class="badge ${s.class}">${s.text}</span>`;

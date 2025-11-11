@@ -95,7 +95,7 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
-});
+}) ;
 
 builder.Services.AddAuthorization();
 

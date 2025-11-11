@@ -92,4 +92,16 @@ public interface IRepository<TEntity, TId> where TEntity : Entity<TId> where TId
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Count of matching entities.</returns>
     Task<int> CountAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Finds entities matching a predicate with related data included.
+    /// </summary>
+    /// <param name="predicate">Filter predicate.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="includes">Related entities to include.</param>
+    /// <returns>Collection of matching entities with includes.</returns>
+    Task<IReadOnlyList<TEntity>> FindWithIncludesAsync(
+        Expression<Func<TEntity, bool>> predicate, 
+        CancellationToken ct = default,
+        params string[] includes);
 }
