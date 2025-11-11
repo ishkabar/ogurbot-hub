@@ -42,6 +42,12 @@ public sealed class Repository<TEntity, TId> : IRepository<TEntity, TId>
     {
         return await _dbSet.ToListAsync(cancellationToken);
     }
+    
+    public async Task DeleteAsync(TEntity entity, CancellationToken ct = default)
+    {
+        _dbSet.Remove(entity);
+        await Task.CompletedTask;
+    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<TEntity>> FindAsync(

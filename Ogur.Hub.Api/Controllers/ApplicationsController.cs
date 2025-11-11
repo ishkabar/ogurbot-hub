@@ -205,6 +205,29 @@ public sealed class ApplicationsController : ControllerBase
 
         return Ok(ApiResponse<ApplicationDto>.SuccessResponse(dto));
     }
+    
+    /// <summary>
+    /// Deletes an application.
+    /// </summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteApplication(int id, CancellationToken cancellationToken)
+    {
+        var application = await _applicationRepository.GetByIdAsync(id, cancellationToken);
+    
+        if (application is null)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("Application not found"));
+        }
+
+        await _applicationRepository.DeleteAsync(application, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    
+        _logger.LogWarning("Application {ApplicationId} deleted by admin", id);
+    
+        return Ok(ApiResponse<object>.SuccessResponse(new { message = "Application deleted successfully" }));
+    }
 
     /// <summary>
     /// Regenerates the API key for an application.

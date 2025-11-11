@@ -106,6 +106,132 @@ public sealed class LicensesController : ControllerBase
     }
 
     /// <summary>
+    /// Updates a license.
+    /// </summary>
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<LicenseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateLicense(
+        int id,
+        [FromBody] UpdateLicenseRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogWarning("Received update request: {@Request}", request);
+        var command = new UpdateLicenseCommand(id, request.MaxDevices, request.ExpiresAt, request.Status);
+        var license = await _mediator.Send(command, cancellationToken);
+
+        if (license is null)
+        {
+            return NotFound(ApiResponse<LicenseDto>.ErrorResponse("License not found"));
+        }
+
+        _logger.LogInformation("License {LicenseId} updated by admin", id);
+
+        return Ok(ApiResponse<LicenseDto>.SuccessResponse(license));
+    }
+
+    /// <summary>
+    /// Deletes a license.
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteLicense(int id, CancellationToken cancellationToken)
+    {
+        var command = new DeleteLicenseCommand(id);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("License not found"));
+        }
+
+        _logger.LogWarning("License {LicenseId} deleted by admin", id);
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { message = "License deleted successfully" }));
+    }
+    
+    /// <summary>
+/// Activates a license.
+/// </summary>
+[HttpPost("{id}/activate")]
+[Authorize(Roles = "Admin")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+public async Task<IActionResult> ActivateLicense(int id, CancellationToken cancellationToken)
+{
+    var command = new ActivateLicenseCommand(id);
+    var result = await _mediator.Send(command, cancellationToken);
+
+    if (!result)
+    {
+        return NotFound(ApiResponse<object>.ErrorResponse("License not found"));
+    }
+
+    _logger.LogInformation("License {LicenseId} activated by admin", id);
+
+    return Ok(ApiResponse<object>.SuccessResponse(new { message = "License activated successfully" }));
+}
+
+/// <summary>
+/// Revokes (deactivates) a license.
+/// </summary>
+[HttpPost("{id}/revoke")]
+[Authorize(Roles = "Admin")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+public async Task<IActionResult> RevokeLicense(int id, CancellationToken cancellationToken)
+{
+    var command = new RevokeLicenseCommand(id);
+    var result = await _mediator.Send(command, cancellationToken);
+
+    if (!result)
+    {
+        return NotFound(ApiResponse<object>.ErrorResponse("License not found"));
+    }
+
+    _logger.LogWarning("License {LicenseId} revoked by admin", id);
+
+    return Ok(ApiResponse<object>.SuccessResponse(new { message = "License revoked successfully" }));
+}
+
+/// <summary>
+/// Extends license expiration date.
+/// </summary>
+[HttpPost("{id}/extend")]
+[Authorize(Roles = "Admin")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+public async Task<IActionResult> ExtendLicense(
+    int id,
+    [FromBody] ExtendLicenseRequest request,
+    CancellationToken cancellationToken)
+{
+    var command = new ExtendLicenseCommand(id, request.NewExpirationDate);
+    
+    try
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("License not found"));
+        }
+
+        _logger.LogInformation("License {LicenseId} expiration extended by admin", id);
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { message = "License extended successfully" }));
+    }
+    catch (ArgumentException ex)
+    {
+        return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+    }
+}
+
+    /// <summary>
     /// Creates a new license.
     /// </summary>
     /// <param name="request">License creation request.</param>

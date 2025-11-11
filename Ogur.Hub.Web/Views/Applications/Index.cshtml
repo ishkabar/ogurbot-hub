@@ -23,14 +23,14 @@
 <!-- Stats Cards -->
 <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-primary text-white">
+        <div class="card stat-card border-start border-primary border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Total Applications</h6>
-                        <h2 class="card-title mb-0">@Model.Applications.Count</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Applications</h6>
+                        <h2 class="card-title mb-0 text-primary">@Model.Applications.Count</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-primary opacity-50">
                         <i class="dx-icon-box" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -39,14 +39,14 @@
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-success text-white">
+        <div class="card stat-card border-start border-success border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Active Applications</h6>
-                        <h2 class="card-title mb-0">@Model.Applications.Count(a => a.IsActive)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Active Applications</h6>
+                        <h2 class="card-title mb-0 text-success">@Model.Applications.Count(a => a.IsActive)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-success opacity-50">
                         <i class="dx-icon-check" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -55,14 +55,14 @@
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-warning text-dark">
+        <div class="card stat-card border-start border-warning border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Inactive Applications</h6>
-                        <h2 class="card-title mb-0">@Model.Applications.Count(a => !a.IsActive)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Inactive Applications</h6>
+                        <h2 class="card-title mb-0 text-warning">@Model.Applications.Count(a => !a.IsActive)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-warning opacity-50">
                         <i class="dx-icon-close" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -71,15 +71,24 @@
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-info text-white">
+        <div class="card stat-card border-start border-info border-4" style="min-height: 120px;">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center h-100">
                     <div>
-                        <h6 class="card-subtitle mb-2">Latest Version</h6>
-                        <h2 class="card-title mb-0" style="font-size: 1.2rem;">@(Model.Applications.Any() ? Model.Applications.OrderBy(a => a.CreatedAt).Last().CurrentVersion : "N/A")</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Latest Deploy</h6>
+                        @if (Model.Applications.Any())
+                        {
+                            var latestApp = Model.Applications.OrderByDescending(a => a.CreatedAt).First();
+                            <h6 class="card-title mb-0 text-info fw-bold">@latestApp.DisplayName</h6>
+                            <small class="text-muted d-block">v@(latestApp.CurrentVersion)</small>
+                        }
+                        else
+                        {
+                            <h2 class="card-title mb-0 text-info">N/A</h2>
+                        }
                     </div>
-                    <div class="stat-icon">
-                        <i class="dx-icon-tags" style="font-size: 48px;"></i>
+                    <div class="stat-icon text-info opacity-50">
+                        <i class="dx-icon-upload" style="font-size: 48px;"></i>
                     </div>
                 </div>
             </div>
@@ -103,130 +112,315 @@
 
 <!-- Create Popup -->
 <div id="createPopup"></div>
+<div id="detailsPopup"></div>
+<div id="editPopup"></div>
 
 @section Scripts {
-<script>
-    let createPopup;
-    let applicationsGrid;
-    let pendingCreateData = null;
-    const applications = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Applications));
+    <script>
+        const authToken = '@Context.Session.GetString("AuthToken")';
+        let createPopup;
+        let detailsPopup;
+        let editPopup;
+        let applicationsGrid;
+        let pendingCreateData = null;
+        let pendingDetailsData = null;
+        let pendingEditData = null;
+        const applications = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Applications));
 
-    $(function() {
-        console.log("Applications loaded:", applications.length);
-
-        createPopup = $("#createPopup").dxPopup({
-            width: 600,
-            height: "auto",
-            maxHeight: "90vh",
-            showTitle: true,
-            title: "New Application",
-            showCloseButton: true,
-            contentTemplate: function() {
-                return $("<div>").attr("id", "createContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingCreateData) {
-                    renderCreate();
-                    pendingCreateData = null;
-                }
-            }
-        }).dxPopup("instance");
-
-        setTimeout(function() {
-            applicationsGrid = $("#applicationsGrid").dxDataGrid({
-                dataSource: applications,
-                showBorders: true,
-                showRowLines: true,
-                rowAlternationEnabled: true,
-                hoverStateEnabled: true,
-                columnAutoWidth: true,
-                noDataText: "No applications found",
-                filterRow: { visible: true },
-                headerFilter: { visible: true },
-                searchPanel: { visible: true, width: 240, placeholder: "Search applications..." },
-                paging: { pageSize: 15 },
-                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
-                export: { enabled: true, fileName: "applications" },
-                columns: [
-                    { dataField: "Name", caption: "Name", width: 180 },
-                    { dataField: "DisplayName", caption: "Display Name", width: 220 },
-                    { dataField: "Description", caption: "Description", width: 300 },
-                    { dataField: "CurrentVersion", caption: "Version", width: 120 },
-                    {
-                        dataField: "IsActive",
-                        caption: "Status",
-                        width: 110,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const badgeClass = options.value ? "bg-success" : "bg-secondary";
-                            const text = options.value ? "Active" : "Inactive";
-                            $("<span>")
-                                .addClass("badge " + badgeClass)
-                                .text(text)
-                                .appendTo(container);
-                        }
-                    },
-                    { dataField: "CreatedAt", caption: "Created", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    {
-                        type: "buttons",
-                        width: 120,
-                        buttons: [
-                            {
-                                hint: "View Details",
-                                icon: "info",
-                                onClick: function(e) {
-                                    window.location.href = '@Url.Action("Details", "Applications")/' + e.row.data.Id;
-                                }
-                            },
-                            {
-                                hint: "Edit",
-                                icon: "edit",
-                                onClick: function(e) {
-                                    window.location.href = '@Url.Action("Edit", "Applications")/' + e.row.data.Id;
-                                }
-                            }
-                        ]
+        $(function () {
+            createPopup = $("#createPopup").dxPopup({
+                width: 600,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "New Application",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "createContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingCreateData) {
+                        renderCreate();
+                        pendingCreateData = null;
                     }
-                ],
-                onContentReady: function() {
-                    console.log("Grid rendered with " + applications.length + " items");
                 }
-            }).dxDataGrid("instance");
-        }, 200);
-    });
+            }).dxPopup("instance");
 
-    function showCreatePopup() {
-        pendingCreateData = {};
-        createPopup.show();
-    }
+            detailsPopup = $("#detailsPopup").dxPopup({
+                width: 900,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "Application Details",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "detailsContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingDetailsData) {
+                        renderDetails(pendingDetailsData);
+                        pendingDetailsData = null;
+                    }
+                }
 
-    function renderCreate() {
-        const content = `
+            }).dxPopup("instance");
+
+            editPopup = $("#editPopup").dxPopup({
+                width: 700,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "Edit Application",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "editContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingEditData) {
+                        renderEdit(pendingEditData);
+                        pendingEditData = null;
+                    }
+                }
+
+            }).dxPopup("instance");
+
+            setTimeout(function () {
+                applicationsGrid = $("#applicationsGrid").dxDataGrid({
+                    dataSource: applications,
+                    showBorders: true,
+                    showRowLines: true,
+                    rowAlternationEnabled: true,
+                    hoverStateEnabled: true,
+                    columnAutoWidth: true,
+                    noDataText: "No applications found",
+                    filterRow: {visible: true},
+                    headerFilter: {visible: true},
+                    searchPanel: {visible: true, width: 240, placeholder: "Search applications..."},
+                    paging: {pageSize: 15},
+                    pager: {visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50]},
+                    export: {enabled: true, fileName: "applications"},
+                    columns: [
+                        {dataField: "Name", caption: "Name", width: 180},
+                        {dataField: "DisplayName", caption: "Display Name", width: 220},
+                        {dataField: "Description", caption: "Description", width: 300},
+                        {dataField: "CurrentVersion", caption: "Version", width: 120},
+                        {
+                            dataField: "IsActive",
+                            caption: "Status",
+                            width: 110,
+                            alignment: "center",
+                            cellTemplate: function (container, options) {
+                                const badgeClass = options.value ? "bg-success" : "bg-secondary";
+                                const text = options.value ? "Active" : "Inactive";
+                                $("<span>")
+                                    .addClass("badge " + badgeClass)
+                                    .text(text)
+                                    .appendTo(container);
+                            }
+                        },
+                        {
+                            dataField: "CreatedAt",
+                            caption: "Created",
+                            dataType: "date",
+                            format: "dd/MM/yyyy",
+                            width: 110
+                        },
+                        {
+                            type: "buttons",
+                            width: 120,
+                            buttons: [
+                                {
+                                    hint: "View Details",
+                                    icon: "info",
+                                    onClick: function (e) {
+                                        showDetails(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Edit",
+                                    icon: "edit",
+                                    onClick: function (e) {
+                                        showEdit(e.row.data);
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }).dxDataGrid("instance");
+            }, 200);
+        });
+
+        function showCreatePopup() {
+            pendingCreateData = {};
+            createPopup.show();
+        }
+
+        function showDetails(app) {
+            //detailsPopup.option("title", "Application Details: " + app.DisplayName);
+            //renderDetails(app);
+            //detailsPopup.show();
+            pendingDetailsData = app;
+            detailsPopup.option("title", "Application Details: " + app.DisplayName);
+            detailsPopup.show();
+
+        }
+
+        function renderDetails(app) {
+            const content = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="dx-icon-info"></i> Application Information</h6>
+                    <table class="table table-sm table-borderless">
+                        <tr><th width="40%">Name:</th><td><code>${app.Name}</code></td></tr>
+                        <tr><th>Display Name:</th><td>${app.DisplayName}</td></tr>
+                        <tr><th>Version:</th><td><span class="badge bg-info">${app.CurrentVersion}</span></td></tr>
+                        <tr><th>Status:</th><td><span class="badge ${app.IsActive ? 'bg-success' : 'bg-secondary'}">${app.IsActive ? 'Active' : 'Inactive'}</span></td></tr>
+                        <tr><th>Created:</th><td>${new Date(app.CreatedAt).toLocaleString('pl-PL')}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="dx-icon-doc"></i> Description</h6>
+                    <p>${app.Description || 'No description provided.'}</p>
+                    <hr>
+                    <button class="btn btn-primary btn-sm" onclick="closeDetailsAndEdit(${app.Id})">
+                        <i class="dx-icon-edit"></i> Edit Application
+                    </button>
+                </div>
+            </div>
+        `;
+            $("#detailsContent").html(content);
+        }
+
+        function showEdit(app) {
+            //editPopup.option("title", "Edit Application: " + app.DisplayName);
+            //renderEdit(app);
+            //editPopup.show();
+            pendingEditData = app;
+            editPopup.option("title", "Edit Application: " + app.DisplayName);
+            editPopup.show();
+        }
+
+        function confirmDelete(appId, appName) {
+            DevExpress.ui.dialog.confirm(
+                `Are you sure you want to delete application "${appName}"? This action cannot be undone.`,
+                "Delete Application"
+            ).then(function(result) {
+                if (result) {
+                    deleteApplication(appId);
+                }
+            });
+        }
+
+        function deleteApplication(appId) {
+            $.ajax({
+                url: '/api/applications/' + appId,
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + authToken },
+                success: function() {
+                    DevExpress.ui.notify("Application deleted successfully!", "success", 2000);
+                    editPopup.hide();
+                    location.reload();
+                },
+                error: function(xhr) {
+                    console.error("Delete failed:", xhr);
+                    DevExpress.ui.notify("Failed to delete application", "error", 3000);
+                }
+            });
+        }
+        
+        function renderEdit(app) {
+            const content = `
+        <form id="editForm">
+            <input type="hidden" id="editId" value="${app.Id}">
+            <div class="mb-3">
+                <label class="form-label">Name *</label>
+                <input type="text" class="form-control" id="editName" value="${app.Name}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Display Name *</label>
+                <input type="text" class="form-control" id="editDisplayName" value="${app.DisplayName}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="editDescription" rows="3">${app.Description || ''}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Version *</label>
+                <input type="text" class="form-control" id="editVersion" value="${app.CurrentVersion}" required>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="editIsActive" ${app.IsActive ? 'checked' : ''}>
+                    <label class="form-check-label">Active</label>
+                </div>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="dx-icon-save"></i> Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="editPopup.hide()">Cancel</button>
+                </div>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete(${app.Id}, '${app.Name}')">
+                    <i class="dx-icon-trash"></i> Delete
+                </button>
+            </div>
+        </form>
+    `;
+            $("#editContent").html(content);
+
+            $("#editForm").on("submit", function(e) {
+                e.preventDefault();
+                submitEdit();
+            });
+        }
+
+        function closeDetailsAndEdit(appId) {
+            detailsPopup.hide();
+            const app = applications.find(a => a.Id === appId);
+            if (app) showEdit(app);
+        }
+
+        function submitEdit() {
+            const data = {
+                name: $("#editName").val().trim(),
+                displayName: $("#editDisplayName").val().trim(),
+                description: $("#editDescription").val().trim() || null,
+                currentVersion: $("#editVersion").val().trim(),
+                isActive: $("#editIsActive").is(":checked")
+            };
+
+            $.ajax({
+                url: '@Url.Action("UpdateApplication", "Applications")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ id: $("#editId").val(), data: data }),
+                success: function() {
+                    DevExpress.ui.notify("Application updated!", "success", 2000);
+                    editPopup.hide();
+                    location.reload();
+                },
+                error: function(xhr) {
+                    console.error("Update failed:", xhr);
+                    DevExpress.ui.notify("Failed to update application", "error", 3000);
+                }
+            });
+        }
+
+        function renderCreate() {
+            const content = `
             <form id="createForm">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="mb-3">
-                            <label class="form-label">Name *</label>
-                            <input type="text" class="form-control" id="appName" placeholder="e.g., MyApp" required>
-                            <div class="form-text">Application internal name (letters, numbers, underscore, hyphen only)</div>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Name *</label>
+                    <input type="text" class="form-control" id="appName" placeholder="e.g., MyApp" required>
+                    <div class="form-text">Application internal name (letters, numbers, underscore, hyphen only)</div>
                 </div>
-                <div class="row">
-                    <div class="col-12">
-                        <div class="mb-3">
-                            <label class="form-label">Display Name *</label>
-                            <input type="text" class="form-control" id="appDisplayName" placeholder="e.g., My Application" required>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Display Name *</label>
+                    <input type="text" class="form-control" id="appDisplayName" placeholder="e.g., My Application" required>
                 </div>
-                <div class="row">
-                    <div class="col-12">
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="appDescription" rows="3" placeholder="Application description..."></textarea>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="appDescription" rows="3" placeholder="Application description..."></textarea>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
@@ -240,83 +434,80 @@
                         <div class="mb-3">
                             <div class="form-check mt-4">
                                 <input class="form-check-input" type="checkbox" id="appIsActive" checked>
-                                <label class="form-check-label" for="appIsActive">Active</label>
+                                <label class="form-check-label">Active</label>
                             </div>
                         </div>
                     </div>
                 </div>
                 <hr>
-                <div class="d-flex gap-2 mt-3">
+                <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="dx-icon-plus"></i> Create Application
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="createPopup.hide()">
-                        Cancel
-                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="createPopup.hide()">Cancel</button>
                 </div>
             </form>
         `;
 
-        $("#createContent").html(content);
+            $("#createContent").html(content);
 
-        // Form validation and submission
-        $("#createForm").on("submit", function(e) {
-            e.preventDefault();
-            
-            const name = $("#appName").val().trim();
-            const displayName = $("#appDisplayName").val().trim();
-            const description = $("#appDescription").val().trim();
-            const version = $("#appVersion").val().trim();
-            const isActive = $("#appIsActive").is(":checked");
+            $("#createForm").on("submit", function (e) {
+                e.preventDefault();
 
-            if (!name || !displayName || !version) {
-                DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
-                return;
-            }
+                const name = $("#appName").val().trim();
+                const displayName = $("#appDisplayName").val().trim();
+                const description = $("#appDescription").val().trim();
+                const version = $("#appVersion").val().trim();
+                const isActive = $("#appIsActive").is(":checked");
 
-            if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-                DevExpress.ui.notify("Name can only contain letters, numbers, underscores and hyphens", "error", 2000);
-                return;
-            }
-
-            if (!/^\d+\.\d+\.\d+.*$/.test(version)) {
-                DevExpress.ui.notify("Version must follow semantic versioning (e.g., 1.0.0)", "error", 2000);
-                return;
-            }
-
-            submitCreate({
-                name: name,
-                displayName: displayName,
-                description: description || null,
-                currentVersion: version,
-                isActive: isActive
-            });
-        });
-    }
-
-    function submitCreate(data) {
-        $.ajax({
-            url: '@Url.Action("Create", "Applications")',
-            method: 'POST',
-            contentType: 'application/json',
-            headers: {
-                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-            },
-            data: JSON.stringify(data),
-            success: function(result) {
-                if (result.success) {
-                    DevExpress.ui.notify("Application created successfully!", "success", 2000);
-                    createPopup.hide();
-                    location.reload();
-                } else {
-                    DevExpress.ui.notify(result.message || "Failed to create application", "error", 3000);
+                if (!name || !displayName || !version) {
+                    DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
+                    return;
                 }
-            },
-            error: function(xhr) {
-                const message = xhr.responseJSON?.message || "An error occurred while creating the application";
-                DevExpress.ui.notify(message, "error", 3000);
-            }
-        });
-    }
-</script>
+
+                if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+                    DevExpress.ui.notify("Name can only contain letters, numbers, underscores and hyphens", "error", 2000);
+                    return;
+                }
+
+                if (!/^\d+\.\d+\.\d+.*$/.test(version)) {
+                    DevExpress.ui.notify("Version must follow semantic versioning (e.g., 1.0.0)", "error", 2000);
+                    return;
+                }
+
+                submitCreate({
+                    name: name,
+                    displayName: displayName,
+                    description: description || null,
+                    currentVersion: version,
+                    isActive: isActive
+                });
+            });
+        }
+
+        function submitCreate(data) {
+            $.ajax({
+                url: '@Url.Action("Create", "Applications")',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: JSON.stringify(data),
+                success: function (result) {
+                    if (result.success) {
+                        DevExpress.ui.notify("Application created successfully!", "success", 2000);
+                        createPopup.hide();
+                        location.reload();
+                    } else {
+                        DevExpress.ui.notify(result.message || "Failed to create application", "error", 3000);
+                    }
+                },
+                error: function (xhr) {
+                    const message = xhr.responseJSON?.message || "An error occurred while creating the application";
+                    DevExpress.ui.notify(message, "error", 3000);
+                }
+            });
+        }
+    </script>
 }

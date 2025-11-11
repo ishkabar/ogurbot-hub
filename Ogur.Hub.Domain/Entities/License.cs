@@ -140,6 +140,7 @@ public sealed class License : AggregateRoot<int>
     public void Activate()
     {
         IsActive = true;
+        Status = LicenseStatus.Active;
         UpdateTimestamp();
     }
 
@@ -149,36 +150,24 @@ public sealed class License : AggregateRoot<int>
     public void Deactivate()
     {
         IsActive = false;
+        Status = LicenseStatus.Revoked;
         UpdateTimestamp();
     }
-
-    /// <summary>
-    /// Updates the maximum number of allowed devices.
-    /// </summary>
-    /// <param name="maxDevices">New maximum devices count.</param>
-    public void UpdateMaxDevices(int maxDevices)
-    {
-        if (maxDevices < 1)
-            throw new ArgumentException("Max devices must be at least 1", nameof(maxDevices));
-
-        MaxDevices = maxDevices;
-        UpdateTimestamp();
-    }
-
+    
     /// <summary>
     /// Extends the license expiration date.
     /// </summary>
-    /// <param name="newEndDate">New expiration date.</param>
-    public void ExtendLicense(DateTime newEndDate)
+    /// <param name="newEndDate">New expiration date (null for no expiration).</param>
+    public void ExtendLicense(DateTime? newEndDate)
     {
-        if (newEndDate <= DateTime.UtcNow)
+        if (newEndDate.HasValue && newEndDate.Value <= DateTime.UtcNow)
             throw new ArgumentException("End date must be in the future", nameof(newEndDate));
 
         EndDate = newEndDate;
         UpdateTimestamp();
     }
-
-
+    
+    
     /// <summary>
     /// Updates license properties
     /// </summary>
@@ -192,17 +181,6 @@ public sealed class License : AggregateRoot<int>
         Status = status;
 
         // Update IsActive based on status
-        IsActive = status == LicenseStatus.Active;
-        UpdateTimestamp();
-    }
-
-    /// <summary>
-    /// Updates license status
-    /// </summary>
-    /// <param name="status">New status</param>
-    public void UpdateStatus(LicenseStatus status)
-    {
-        Status = status;
         IsActive = status == LicenseStatus.Active;
         UpdateTimestamp();
     }

@@ -108,34 +108,67 @@ public sealed class ApplicationsController : BaseController
             return Json(new { success = false, message = "An error occurred while creating the application" });
         }
     }
+    
+    [HttpPost]
+    public async Task<IActionResult> UpdateApplication([FromBody] UpdateApplicationDto dto)
+    {
+        var request = new UpdateApplicationRequest(
+            dto.Data.Name,
+            dto.Data.DisplayName,
+            dto.Data.Description,
+            dto.Data.CurrentVersion,
+            dto.Data.IsActive);
+    
+        var result = await _hubApiClient.UpdateApplicationAsync(AuthToken!, dto.Id, request);
+    
+        return Ok(new { success = result != null });
+    }
+
+    public record UpdateApplicationDto(int Id, ApplicationUpdateData Data);
+    public record ApplicationUpdateData(string Name, string DisplayName, string? Description, string CurrentVersion, bool IsActive);
 
     /// <summary>
     /// Displays application details
     /// </summary>
-    /// <param name="id">Application ID</param>
-    /// <returns>Application details view</returns>
     [HttpGet]
-    public IActionResult Details(int id)
+    public async Task<IActionResult> Details(int id)
     {
+        var application = await _hubApiClient.GetApplicationByIdAsync(AuthToken!, id);
+    
+        if (application == null)
+        {
+            return NotFound();
+        }
+
+        var licenses = await _hubApiClient.GetLicensesAsync(AuthToken!, id);
+    
         var viewModel = new ApplicationDetailsViewModel
         {
             Title = "Application Details",
-            Description = "View application details and statistics",
+            Description = "Details for " + application.DisplayName,
             Username = Username,
             IsAdmin = IsAdmin,
             ControllerName = "Applications",
             EntityId = id,
-            ApplicationId = id
+            ApplicationId = id,
+            Application = application,
+            LicensesCount = licenses?.Count ?? 0,
+            ActiveLicensesCount = licenses?.Count(l => l.Status == 1) ?? 0,
+            DevicesCount = licenses?.Sum(l => l.RegisteredDevices) ?? 0,
+            ConnectedDevicesCount = 0
         };
         
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+    {
+        return PartialView(viewModel);
+    }
+    
         return View(viewModel);
     }
 
     /// <summary>
     /// Displays application edit page
     /// </summary>
-    /// <param name="id">Application ID</param>
-    /// <returns>Application edit view</returns>
     [HttpGet]
     public IActionResult Edit(int id)
     {
@@ -150,6 +183,11 @@ public sealed class ApplicationsController : BaseController
             ApplicationId = id
         };
         
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return PartialView(viewModel);
+        }
+    
         return View(viewModel);
     }
 }

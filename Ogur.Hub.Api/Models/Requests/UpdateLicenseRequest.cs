@@ -1,29 +1,26 @@
-﻿// File: Ogur.Hub.Api/Models/Requests/UpdateLicenseRequest.cs
-// Project: Ogur.Hub.Api
+﻿// File: Hub.Api/Models/Requests/UpdateLicenseRequest.cs
+// Project: Hub.Api
 // Namespace: Ogur.Hub.Api.Models.Requests
-
-using System.ComponentModel.DataAnnotations;
 
 namespace Ogur.Hub.Api.Models.Requests;
 
 /// <summary>
-/// Request model for updating an existing license.
+/// Request to update a license
 /// </summary>
 public sealed record UpdateLicenseRequest
 {
     /// <summary>
-    /// Maximum number of devices allowed.
+    /// Maximum devices allowed
     /// </summary>
-    [Range(1, 100)]
-    public int? MaxDevices { get; init; }
+    public int MaxDevices { get; init; }
 
     /// <summary>
-    /// License expiration date.
+    /// License expiration date
     /// </summary>
-    public DateTime? EndDate { get; init; }
+    public DateTime? ExpiresAt { get; init; }
 
     /// <summary>
-    /// Whether the license is active.
+    /// License status
     /// </summary>
-    public bool? IsActive { get; init; }
+    public int Status { get; init; }
 }

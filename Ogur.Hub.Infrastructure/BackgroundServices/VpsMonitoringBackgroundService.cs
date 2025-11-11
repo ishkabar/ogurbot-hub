@@ -122,7 +122,7 @@ public class VpsMonitoringBackgroundService : BackgroundService
                     },
                     stoppingToken);
 
-                _logger.LogDebug("Pushed FAKE VPS stats to connected clients (Development Mode)");
+                _logger.LogTrace("Pushed FAKE VPS stats to connected clients (Development Mode)");
             }
             catch (Exception ex)
             {

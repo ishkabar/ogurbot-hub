@@ -53,8 +53,7 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
-
-
+/*
 app.MapFallback("/api/{**path}", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
     var httpClient = httpClientFactory.CreateClient();
@@ -68,25 +67,51 @@ app.MapFallback("/api/{**path}", async (HttpContext context, IHttpClientFactory 
     
     foreach (var header in context.Request.Headers)
     {
+        if (header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase) ||
+            header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
         requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.AsEnumerable());
     }
     
     if (context.Request.ContentLength > 0)
     {
-        requestMessage.Content = new StreamContent(context.Request.Body);
+        var content = new StreamContent(context.Request.Body);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+        requestMessage.Content = content;
     }
     
-    var response = await httpClient.SendAsync(requestMessage);
-    
+    // ResponseContentRead ładuje całą odpowiedź do bufora zamiast streamować
+    var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead);
+
     context.Response.StatusCode = (int)response.StatusCode;
-    
+
+// Kopiuj tylko bezpieczne headery - pomiń Transfer-Encoding i Connection
     foreach (var header in response.Headers)
     {
-        context.Response.Headers.TryAdd(header.Key, header.Value.ToArray());
+        if (!header.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) &&
+            !header.Key.Equals("Connection", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Headers.TryAdd(header.Key, header.Value.ToArray());
+        }
     }
-    
-    await response.Content.CopyToAsync(context.Response.Body);
+
+    foreach (var header in response.Content.Headers)
+    {
+        if (!header.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) &&
+            !header.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Headers.TryAdd(header.Key, header.Value.ToArray());
+        }
+    }
+
+    if (response.StatusCode != System.Net.HttpStatusCode.NoContent && response.Content != null)
+    {
+        var content = await response.Content.ReadAsByteArrayAsync();
+        await context.Response.Body.WriteAsync(content);
+    }
 });
 
-
+*/
 app.Run();

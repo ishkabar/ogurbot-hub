@@ -3,6 +3,7 @@
 // Namespace: Ogur.Hub.Web.Controllers
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Ogur.Hub.Web.Infrastructure;
 using Ogur.Hub.Web.Models.ViewModels;
 using Ogur.Hub.Web.Services;
@@ -15,6 +16,7 @@ namespace Ogur.Hub.Web.Controllers;
 public sealed class LicensesController : BaseController
 {
     private readonly IHubApiClient _hubApiClient;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<LicensesController> _logger;
 
     /// <summary>
@@ -22,9 +24,10 @@ public sealed class LicensesController : BaseController
     /// </summary>
     /// <param name="hubApiClient">Hub API client for backend communication</param>
     /// <param name="logger">Logger instance</param>
-    public LicensesController(IHubApiClient hubApiClient, ILogger<LicensesController> logger)
+    public LicensesController(IHubApiClient hubApiClient, IConfiguration configuration, ILogger<LicensesController> logger)
     {
         _hubApiClient = hubApiClient;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -57,6 +60,7 @@ public sealed class LicensesController : BaseController
                 ApplicationId = applicationId
             };
             
+            ViewBag.ApiBaseUrl = _configuration["ApiSettings:BaseUrl"]; 
             return View(viewModel);
         }
         catch (Exception ex)

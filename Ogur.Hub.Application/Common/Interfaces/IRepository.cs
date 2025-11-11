@@ -70,6 +70,13 @@ public interface IRepository<TEntity, TId> where TEntity : Entity<TId> where TId
     /// </summary>
     /// <param name="entity">Entity to remove.</param>
     void Remove(TEntity entity);
+    
+    /// <summary>
+    /// Deletes an entity asynchronously.
+    /// </summary>
+    /// <param name="entity">Entity to delete.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task DeleteAsync(TEntity entity, CancellationToken ct = default);
 
     /// <summary>
     /// Removes multiple entities.

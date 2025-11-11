@@ -41,7 +41,7 @@ namespace Ogur.Hub.Web.Middleware
                     return;
                 }
             }
-
+            
             await _next(context);
         }
     }

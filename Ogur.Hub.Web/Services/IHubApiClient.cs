@@ -131,6 +131,25 @@ public interface IHubApiClient
     /// <param name="token">Authentication token</param>
     /// <returns>True if successful</returns>
     Task<bool> RefreshWebsitesAsync(string token);
+    
+    /// <summary>
+    /// Gets application by ID
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="id">Application ID</param>
+    /// <returns>Application details</returns>
+    Task<ApplicationDto?> GetApplicationByIdAsync(string token, int id);
+    
+    // W IHubApiClient.cs po GetApplicationByIdAsync:
+
+    /// <summary>
+    /// Updates an application
+    /// </summary>
+    /// <param name="token">Authentication token</param>
+    /// <param name="id">Application ID</param>
+    /// <param name="request">Update request</param>
+    /// <returns>Updated application</returns>
+    Task<ApplicationDto?> UpdateApplicationAsync(string token, int id, UpdateApplicationRequest request);
 }
 
 #region Authentication DTOs

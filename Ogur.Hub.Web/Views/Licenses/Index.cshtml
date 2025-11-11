@@ -103,208 +103,605 @@
 
 <!-- Create Popup -->
 <div id="createPopup"></div>
+<div id="detailsPopup"></div>
+<div id="editPopup"></div>
+<div id="extendPopup"></div>
+
 
 @section Scripts {
-<script>
-    let createPopup;
-    let licensesGrid;
-    let pendingCreateData = null;
-    const licenses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Licenses));
-    
-    let applications = [];
-    let users = [];
+    <script>
+        const apiBaseUrl = '@ViewBag.ApiBaseUrl';
+        //const authToken = '@ViewBag.AuthToken';
+        const authToken = '@Context.Session.GetString("AuthToken")';
+        let createPopup;
+        let detailsPopup;
+        let editPopup;
+        let licensesGrid;
+        let pendingCreateData = null;
+        let pendingDetailsData = null;
+        let pendingEditData = null;
+        const licenses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Licenses));
 
-    $(function() {
-        console.log("Licenses loaded:", licenses.length);
+        let applications = [];
+        let users = [];
 
-        createPopup = $("#createPopup").dxPopup({
-            width: 600,
-            height: "auto",
-            maxHeight: "90vh",
-            showTitle: true,
-            title: "New License",
-            showCloseButton: true,
-            contentTemplate: function() {
-                return $("<div>").attr("id", "createContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingCreateData) {
-                    renderCreate();
-                    pendingCreateData = null;
-                }
-            }
-        }).dxPopup("instance");
+        $(function () {
+            console.log("Licenses loaded:", licenses.length);
 
-        setTimeout(function() {
-            licensesGrid = $("#licensesGrid").dxDataGrid({
-                dataSource: licenses,
-                showBorders: true,
-                showRowLines: true,
-                rowAlternationEnabled: true,
-                hoverStateEnabled: true,
-                columnAutoWidth: true,
-                noDataText: "No licenses found",
-                filterRow: { visible: true },
-                headerFilter: { visible: true },
-                searchPanel: { visible: true, width: 240, placeholder: "Search licenses..." },
-                paging: { pageSize: 15 },
-                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
-                export: { enabled: true, fileName: "licenses" },
-                columns: [
-                    {
-                        dataField: "LicenseKey",
-                        caption: "License Key",
-                        width: 220,
-                        cellTemplate: function(container, options) {
-                            $("<code>").text(options.value).appendTo(container);
-                        }
-                    },
-                    { dataField: "ApplicationName", caption: "Application", width: 180 },
-                    {
-                        dataField: "RegisteredDevices",
-                        caption: "Devices",
-                        width: 100,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const text = options.data.RegisteredDevices + " / " + options.data.MaxDevices;
-                            const color = options.data.RegisteredDevices >= options.data.MaxDevices ? "text-danger" : "text-success";
-                            $("<span>").addClass(color).text(text).appendTo(container);
-                        }
-                    },
-                    { dataField: "IssuedAt", caption: "Issued", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    { dataField: "ExpiresAt", caption: "Expires", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    {
-                        dataField: "Status",
-                        caption: "Status",
-                        width: 110,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            let badgeClass = "bg-secondary";
-                            let text = "Unknown";
-
-                            if (options.value === 1) {
-                                badgeClass = "bg-success";
-                                text = "Active";
-                            } else if (options.value === 2) {
-                                badgeClass = "bg-danger";
-                                text = "Expired";
-                            } else if (options.value === 3) {
-                                badgeClass = "bg-dark";
-                                text = "Revoked";
-                            } else if (options.value === 4) {
-                                badgeClass = "bg-warning text-dark";
-                                text = "Pending";
-                            } else if (options.value === 5) {
-                                badgeClass = "bg-secondary";
-                                text = "Suspended";
-                            } else if (options.value === 6) {
-                                badgeClass = "bg-secondary";
-                                text = "Inactive";
-                            }
-
-                            $("<span>")
-                                .addClass("badge " + badgeClass)
-                                .text(text)
-                                .appendTo(container);
-                        }
-                    },
-                    { dataField: "ValidationCount", caption: "Validations", width: 110, alignment: "center" },
-                    {
-                        type: "buttons",
-                        width: 120,
-                        buttons: [
-                            {
-                                hint: "View Details",
-                                icon: "info",
-                                onClick: function(e) {
-                                    showLicenseDetails(e.row.data.Id);
-                                }
-                            },
-                            {
-                                hint: "Edit",
-                                icon: "edit",
-                                onClick: function(e) {
-                                    showLicenseEdit(e.row.data.Id);
-                                }
-                            }
-                        ]
+            createPopup = $("#createPopup").dxPopup({
+                width: 600,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "New License",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "createContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingCreateData) {
+                        renderCreate();
+                        pendingCreateData = null;
                     }
-                ],
-                onContentReady: function() {
-                    console.log("Grid rendered with " + licenses.length + " items");
                 }
-            }).dxDataGrid("instance");
-        }, 200);
-    });
+            }).dxPopup("instance");
 
-    function showCreatePopup() {
-        pendingCreateData = {};
-        loadApplicationsAndUsers();
-        createPopup.show();
-    }
+            detailsPopup = $("#detailsPopup").dxPopup({
+                width: 900,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "License Details",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "detailsContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingDetailsData) {
+                        renderDetails(pendingDetailsData);
+                        pendingDetailsData = null;
+                    }
+                }
+            }).dxPopup("instance");
 
-    function loadApplicationsAndUsers() {
-        $.ajax({
-            url: '/api/applications', 
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token') 
-            }
-        })
-            .done(function(result) {
-                console.log("Applications API Response:", result);
+            editPopup = $("#editPopup").dxPopup({
+                width: 700,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "Edit License",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "editContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingEditData) {
+                        renderEdit(pendingEditData);
+                        pendingEditData = null;
+                    }
+                }
+            }).dxPopup("instance");
 
-                applications = result.data || result || [];
-                console.log("Applications loaded:", applications);
-                updateApplicationDropdown();
-            })
-            .fail(function(xhr, status, error) {
-                console.error("Failed to load applications:", xhr.responseJSON);
-                DevExpress.ui.notify("Failed to load applications", "error", 2000);
-            });
+            setTimeout(function () {
+                licensesGrid = $("#licensesGrid").dxDataGrid({
+                    dataSource: licenses,
+                    showBorders: true,
+                    showRowLines: true,
+                    rowAlternationEnabled: true,
+                    hoverStateEnabled: true,
+                    columnAutoWidth: true,
+                    noDataText: "No licenses found",
+                    filterRow: {visible: true},
+                    headerFilter: {visible: true},
+                    searchPanel: {visible: true, width: 240, placeholder: "Search licenses..."},
+                    paging: {pageSize: 15},
+                    pager: {visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50]},
+                    export: {enabled: true, fileName: "licenses"},
+                    columns: [
+                        {
+                            dataField: "LicenseKey",
+                            caption: "License Key",
+                            width: 220,
+                            cellTemplate: function (container, options) {
+                                $("<code>").text(options.value).appendTo(container);
+                            }
+                        },
+                        {dataField: "ApplicationName", caption: "Application", width: 180},
+                        {
+                            dataField: "RegisteredDevices",
+                            caption: "Devices",
+                            width: 100,
+                            alignment: "center",
+                            cellTemplate: function (container, options) {
+                                const text = options.data.RegisteredDevices + " / " + options.data.MaxDevices;
+                                const color = options.data.RegisteredDevices >= options.data.MaxDevices ? "text-danger" : "text-success";
+                                $("<span>").addClass(color).text(text).appendTo(container);
+                            }
+                        },
+                        {dataField: "IssuedAt", caption: "Issued", dataType: "date", format: "dd/MM/yyyy", width: 110},
+                        {
+                            dataField: "ExpiresAt",
+                            caption: "Expires",
+                            dataType: "date",
+                            format: "dd/MM/yyyy",
+                            width: 110
+                        },
+                        {
+                            dataField: "Status",
+                            caption: "Status",
+                            width: 110,
+                            alignment: "center",
+                            calculateCellValue: function(rowData) {
+                                return rowData.Status;
+                            },
+                            cellTemplate: function(container, options) {
+                                const statusValue = options.value;
+                                let badgeClass = "bg-secondary";
+                                let text = "Inactive";
+                                
+                                if (statusValue === 1) {
+                                    badgeClass = "bg-success";
+                                    text = "Active";
+                                } else if (statusValue === 2) {
+                                    badgeClass = "bg-danger";
+                                    text = "Expired";
+                                } else if (statusValue === 3) {
+                                    badgeClass = "bg-dark";
+                                    text = "Revoked";
+                                } else if (statusValue === 4) {
+                                    badgeClass = "bg-warning text-dark";
+                                    text = "Pending";
+                                } else if (statusValue === 5) {
+                                    badgeClass = "bg-secondary";
+                                    text = "Suspended";
+                                } else if (statusValue === 6) {
+                                    badgeClass = "bg-secondary";
+                                    text = "Inactive";
+                                }
 
-        $.ajax({
-            url: '/api/users',
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')  
-            }
-        })
-            .done(function(result) {
-                console.log("Users API Response:", result);
+                                $("<span>")
+                                    .addClass("badge " + badgeClass)
+                                    .text(text)
+                                    .appendTo(container);
+                            }
+                        },
+                        {dataField: "ValidationCount", caption: "Validations", width: 110, alignment: "center"},
+                        {
+                            type: "buttons",
+                            width: 120,
+                            buttons: [
+                                {
+                                    hint: "View Details",
+                                    icon: "info",
+                                    onClick: function (e) {
+                                        showDetails(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Edit",
+                                    icon: "edit",
+                                    onClick: function (e) {
+                                        showEdit(e.row.data);
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }).dxDataGrid("instance");
+            }, 200);
+        });
 
-                users = result.data || result.value || result || [];
-                console.log("Users loaded:", users);
-                updateUserDropdown();
-            })
-            .fail(function(xhr, status, error) {
-                console.error("Failed to load users:", xhr.responseJSON);
-                DevExpress.ui.notify("Failed to load users", "error", 2000);
-            });
-    }
+        function showCreatePopup() {
+            DevExpress.ui.notify("Loading data...", "info", 500);
 
-    function updateApplicationDropdown() {
-        const select = $("#appSelect");
-        if (select.length) {
-            select.empty().append('<option value="">Select Application</option>');
-            applications.forEach(app => {
-                select.append(`<option value="${app.Id}">${app.DisplayName}</option>`);
+            Promise.all([
+                $.ajax({
+                    url: apiBaseUrl  + '/api/applications',
+                    method: 'GET',
+                    headers: {'Authorization': 'Bearer ' + authToken}
+                }),
+                $.ajax({
+                    url: apiBaseUrl  + '/api/users',
+                    method: 'GET',
+                    headers: {'Authorization': 'Bearer ' + authToken}
+                })
+            ]).then(function(results) {
+                const appsResult = results[0];
+                const usersResult = results[1];
+
+                applications = appsResult.data || appsResult || [];
+                users = usersResult.data || usersResult.value || usersResult || [];
+
+                console.log("Data loaded - apps:", applications.length, "users:", users.length);
+
+                // Teraz pokaż popup
+                pendingCreateData = {};
+                createPopup.show();
+
+            }).catch(function(error) {
+                console.error("Failed to load data:", error);
+                DevExpress.ui.notify("Failed to load data", "error", 2000);
             });
         }
-    }
 
-    function updateUserDropdown() {
-        const select = $("#userSelect");
-        if (select.length) {
-            select.empty().append('<option value="">Select User</option>');
-            users.forEach(user => {
-                select.append(`<option value="${user.Id}">${user.Username} (${user.Email})</option>`);
+        function showDetails(license) {
+            pendingDetailsData = license;
+            detailsPopup.option("title", "License Details: " + license.LicenseKey);
+            detailsPopup.show();
+        }
+
+        function renderDetails(license) {
+            const statusBadge = getStatusBadge(license.Status);
+            const content = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="dx-icon-key"></i> License Information</h6>
+                    <table class="table table-sm table-borderless">
+                        <tr><th width="40%">License Key:</th><td><code>${license.LicenseKey}</code></td></tr>
+                        <tr><th>Application:</th><td>${license.ApplicationName}</td></tr>
+                        <tr><th>Status:</th><td>${statusBadge}</td></tr>
+                        <tr><th>Devices:</th><td>${license.RegisteredDevices} / ${license.MaxDevices}</td></tr>
+                        <tr><th>Issued:</th><td>${new Date(license.IssuedAt).toLocaleString('pl-PL')}</td></tr>
+                        <tr><th>Expires:</th><td>${license.ExpiresAt ? new Date(license.ExpiresAt).toLocaleString('pl-PL') : 'Never'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="dx-icon-chart"></i> Statistics</h6>
+                    <p><strong>Validations:</strong> ${license.ValidationCount}</p>
+                    <p><strong>Last Validated:</strong> ${license.LastValidatedAt ? new Date(license.LastValidatedAt).toLocaleString('pl-PL') : 'Never'}</p>
+                    <hr>
+                    <button class="btn btn-primary btn-sm" onclick="closeDetailsAndEdit(${license.Id})">
+                        <i class="dx-icon-edit"></i> Edit License
+                    </button>
+                </div>
+            </div>
+        `;
+            $("#detailsContent").html(content);
+        }
+
+        function showEdit(license) {
+            pendingEditData = license;
+            editPopup.option("title", "Edit License: " + license.LicenseKey);
+            editPopup.show();
+        }
+
+        function renderEdit(license) {
+            const isActive = license.Status === 1;
+            const content = `
+        <form id="editForm">
+            <input type="hidden" id="editId" value="${license.Id}">
+            <div class="mb-3">
+                <label class="form-label">Max Devices *</label>
+                <input type="number" class="form-control" id="editMaxDevices" value="${license.MaxDevices}" min="1" max="10" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Expires At</label>
+                <input type="datetime-local" class="form-control" id="editExpiresAt" value="${license.ExpiresAt ? new Date(license.ExpiresAt).toISOString().slice(0, 16) : ''}">
+                <small class="form-text text-muted">Leave empty for no expiration</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Status *</label>
+                <select class="form-select" id="editStatus" required>
+                    <option value="1" ${license.Status === 1 ? 'selected' : ''}>Active</option>
+                    <option value="2" ${license.Status === 2 ? 'selected' : ''}>Expired</option>
+                    <option value="3" ${license.Status === 3 ? 'selected' : ''}>Revoked</option>
+                    <option value="4" ${license.Status === 4 ? 'selected' : ''}>Pending</option>
+                    <option value="5" ${license.Status === 5 ? 'selected' : ''}>Suspended</option>
+                    <option value="6" ${license.Status === 6 ? 'selected' : ''}>Inactive</option>
+                </select>
+            </div>
+            <hr>
+            <div class="d-flex flex-column gap-3">
+                <div class="d-flex justify-content-between">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="dx-icon-save"></i> Save Changes</button>
+                        <button type="button" class="btn btn-secondary" onclick="editPopup.hide()">Cancel</button>
+                    </div>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete(${license.Id}, '${license.LicenseKey}')">
+                        <i class="dx-icon-trash"></i> Delete
+                    </button>
+                </div>
+                <hr>
+                <div class="d-flex gap-2">
+                    ${!isActive ? `
+                    <button type="button" class="btn btn-success btn-sm" onclick="activateLicense(${license.Id})">
+                        <i class="dx-icon-check"></i> Activate License
+                    </button>` : ''}
+                    ${isActive ? `
+                    <button type="button" class="btn btn-warning btn-sm" onclick="revokeLicense(${license.Id})">
+                        <i class="dx-icon-close"></i> Revoke License
+                    </button>` : ''}
+                    <button type="button" class="btn btn-info btn-sm" onclick="showExtendDialog(${license.Id})">
+                        <i class="dx-icon-clock"></i> Extend Expiration
+                    </button>
+                </div>
+            </div>
+        </form>
+    `;
+            $("#editContent").html(content);
+
+            $("#editForm").on("submit", function (e) {
+                e.preventDefault();
+                submitEdit();
             });
         }
-    }
 
-    function renderCreate() {
-        const content = `
+
+        function showExtendDialog(licenseId) {
+            const now = new Date();
+            now.setMonth(now.getMonth() + 1); // Default: +1 month
+            const defaultDate = now.toISOString().slice(0, 16);
+
+            const content = `
+        <div class="p-3">
+            <div class="mb-3">
+                <label class="form-label">New Expiration Date</label>
+                <input type="datetime-local" class="form-control" id="extendDate" value="${defaultDate}">
+                <small class="form-text text-muted">Leave empty for no expiration</small>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="noExpiration">
+                <label class="form-check-label">No Expiration</label>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="confirmExtend(${licenseId})">
+                    <i class="dx-icon-clock"></i> Extend
+                </button>
+                <button class="btn btn-secondary" onclick="extendDialog.hide()">Cancel</button>
+            </div>
+        </div>
+    `;
+
+            if (!window.extendDialog) {
+                window.extendDialog = $("#extendPopup").dxPopup({
+                    width: 400,
+                    height: "auto",
+                    showTitle: true,
+                    title: "Extend License",
+                    showCloseButton: true
+                }).dxPopup("instance");
+            }
+
+            extendDialog.content().html(content);
+            extendDialog.show();
+
+            $("#noExpiration").on("change", function () {
+                if (this.checked) {
+                    $("#extendDate").val("").prop("disabled", true);
+                } else {
+                    $("#extendDate").prop("disabled", false);
+                }
+            });
+        }
+
+        function confirmExtend(licenseId) {
+            const noExpiration = $("#noExpiration").is(":checked");
+            const newDate = noExpiration ? null : $("#extendDate").val();
+
+            $.ajax({
+                url: apiBaseUrl  + '/api/licenses/' + licenseId + '/extend',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                data: JSON.stringify({
+                    newExpirationDate: newDate ? new Date(newDate).toISOString() : null
+                }),
+                success: function () {
+                    DevExpress.ui.notify("License extended successfully!", "success", 2000);
+                    extendDialog.hide();
+                    editPopup.hide();
+                    location.reload();
+                },
+                error: function (xhr) {
+                    console.error("Extend failed:", xhr);
+                    const msg = xhr.responseJSON?.message || "Failed to extend license";
+                    DevExpress.ui.notify(msg, "error", 3000);
+                }
+            });
+        }
+
+        function revokeLicense(licenseId) {
+            DevExpress.ui.dialog.confirm(
+                "Are you sure you want to revoke this license? This will deactivate the license.",
+                "Revoke License"
+            ).then(function (result) {
+                if (result) {
+                    $.ajax({
+                        url: apiBaseUrl  + '/api/licenses/' + licenseId + '/revoke',
+                        method: 'POST',
+                        headers: {'Authorization': 'Bearer ' + authToken},
+                        success: function () {
+                            DevExpress.ui.notify("License revoked successfully!", "success", 2000);
+                            editPopup.hide();
+                            location.reload();
+                        },
+                        error: function (xhr) {
+                            console.error("Revoke failed:", xhr);
+                            DevExpress.ui.notify("Failed to revoke license", "error", 3000);
+                        }
+                    });
+                }
+            });
+        }
+
+        function activateLicense(licenseId) {
+            DevExpress.ui.dialog.confirm(
+                "Are you sure you want to activate this license?",
+                "Activate License"
+            ).then(function (result) {
+                if (result) {
+                    $.ajax({
+                        url: apiBaseUrl  + '/api/licenses/' + licenseId + '/activate',
+                        method: 'POST',
+                        headers: {'Authorization': 'Bearer ' + authToken},
+                        success: function () {
+                            DevExpress.ui.notify("License activated successfully!", "success", 2000);
+                            editPopup.hide();
+                            location.reload();
+                        },
+                        error: function (xhr) {
+                            console.error("Activate failed:", xhr);
+                            DevExpress.ui.notify("Failed to activate license", "error", 3000);
+                        }
+                    });
+                }
+            });
+        }
+
+        function closeDetailsAndEdit(licenseId) {
+            detailsPopup.hide();
+            const license = licenses.find(l => l.Id === licenseId);
+            if (license) showEdit(license);
+        }
+
+        function submitEdit() {
+            const data = {
+                maxDevices: parseInt($("#editMaxDevices").val()),
+                expiresAt: $("#editExpiresAt").val() ? new Date($("#editExpiresAt").val()).toISOString() : null,
+                status: parseInt($("#editStatus").val())
+            };
+
+            $.ajax({
+                url: apiBaseUrl  + '/api/licenses/' + $("#editId").val(),
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                data: JSON.stringify(data),
+                success: function(response) {
+                    DevExpress.ui.notify("License updated!", "success", 2000);
+                    editPopup.hide();
+
+                    // Pobierz świeże dane z API
+                    $.ajax({
+                        url: apiBaseUrl  + '/api/licenses',
+                        headers: { 'Authorization': 'Bearer ' + authToken },
+                        success: function(result) {
+                            const freshLicenses = result.data || result;
+
+                            // Aktualizuj grid
+                            licensesGrid.option("dataSource", freshLicenses);
+                            licensesGrid.refresh();
+
+                            // Aktualizuj zmienną globalną
+                            licenses.length = 0;
+                            licenses.push(...freshLicenses);
+                        }
+                    });
+                },
+                error: function(xhr) {
+                    console.error("Update failed:", xhr);
+                    DevExpress.ui.notify("Failed to update license", "error", 3000);
+                }
+            });
+        }
+
+        function confirmDelete(licenseId, licenseKey) {
+            DevExpress.ui.dialog.confirm(
+                `Are you sure you want to delete license "${licenseKey}"? This action cannot be undone.`,
+                "Delete License"
+            ).then(function (result) {
+                if (result) {
+                    deleteLicense(licenseId);
+                }
+            });
+        }
+
+        function deleteLicense(licenseId) {
+            $.ajax({
+                url: apiBaseUrl  + '/api/licenses/' + licenseId,
+                method: 'DELETE',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                success: function () {
+                    DevExpress.ui.notify("License deleted successfully!", "success", 2000);
+                    editPopup.hide();
+                    location.reload();
+                },
+                error: function (xhr) {
+                    console.error("Delete failed:", xhr);
+                    DevExpress.ui.notify("Failed to delete license", "error", 3000);
+                }
+            });
+        }
+
+        function getStatusBadge(status) {
+            const statusMap = {
+                1: {class: 'bg-success', text: 'Active'},
+                2: {class: 'bg-danger', text: 'Expired'},
+                3: {class: 'bg-dark', text: 'Revoked'},
+                4: {class: 'bg-warning text-dark', text: 'Pending'},
+                5: {class: 'bg-secondary', text: 'Suspended'},
+                6: {class: 'bg-secondary', text: 'Inactive'}
+            };
+            const s = statusMap[status] || {class: 'bg-secondary', text: 'Unknown'};
+            return `<span class="badge ${s.class}">${s.text}</span>`;
+        }
+
+        function loadApplicationsAndUsers() {
+            console.log("Loading applications and users...");
+
+            $.ajax({
+                url: '/api/applications',
+                method: 'GET',
+                headers: {'Authorization': 'Bearer ' + authToken}
+            })
+                .done(function (result) {
+                    console.log("Applications loaded:", result);
+                    applications = result.data || result || [];
+                    console.log("Applications array:", applications);
+                    updateApplicationDropdown();
+                })
+                .fail(function (xhr) {
+                    console.error("Failed to load applications:", xhr);
+                    DevExpress.ui.notify("Failed to load applications", "error", 2000);
+                });
+
+            $.ajax({
+                url: '/api/users',
+                method: 'GET',
+                headers: {'Authorization': 'Bearer ' + authToken}
+            })
+                .done(function (result) {
+                    console.log("Users loaded:", result);
+                    users = result.data || result.value || result || [];
+                    console.log("Users array:", users);
+                    updateUserDropdown();
+                })
+                .fail(function (xhr) {
+                    console.error("Failed to load users:", xhr);
+                    DevExpress.ui.notify("Failed to load users", "error", 2000);
+                });
+        }
+
+        function updateApplicationDropdown() {
+            console.log("Updating app dropdown, applications count:", applications.length);
+            const select = $("#appSelect");
+            console.log("Select element found:", select.length > 0);
+
+            if (select.length) {
+                select.empty().append('<option value="">Select Application</option>');
+                applications.forEach(app => {
+                    select.append(`<option value="${app.Id || app.id}">${app.DisplayName || app.displayName}</option>`);
+                });
+                console.log("App dropdown updated with", applications.length, "items");
+            }
+        }
+
+        function updateUserDropdown() {
+            console.log("Updating user dropdown, users count:", users.length);
+            const select = $("#userSelect");
+            console.log("Select element found:", select.length > 0);
+            if (select.length) {
+                select.empty().append('<option value="">Select User</option>');
+                users.forEach(user => {
+                    select.append(`<option value="${user.Id || user.id}">${user.Username || user.username} (${user.Email || user.email})</option>`);
+                });
+                console.log("User dropdown updated with", users.length, "items");
+
+            }
+        }
+
+        function renderCreate() {
+            const content = `
             <form id="createForm">
                 <div class="row">
                     <div class="col-md-6">
@@ -364,74 +761,70 @@
             </form>
         `;
 
-        $("#createContent").html(content);
+            $("#createContent").html(content);
 
-        // Set default start date to now
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        $("#startDate").val(now.toISOString().slice(0, 16));
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            $("#startDate").val(now.toISOString().slice(0, 16));
 
-        // Handle never expires checkbox
-        $("#neverExpires").on("change", function() {
-            if (this.checked) {
-                $("#endDate").val("").prop("disabled", true);
-            } else {
-                $("#endDate").prop("disabled", false);
-            }
-        });
-
-        // Update dropdowns if data is already loaded
-        updateApplicationDropdown();
-        updateUserDropdown();
-
-        // Form submission
-        $("#createForm").on("submit", function(e) {
-            e.preventDefault();
-            
-            const applicationId = $("#appSelect").val();
-            const userId = $("#userSelect").val();
-            const maxDevices = parseInt($("#maxDevices").val());
-            const startDate = $("#startDate").val();
-            const endDate = $("#neverExpires").is(":checked") ? null : $("#endDate").val();
-
-            if (!applicationId || !userId || !maxDevices) {
-                DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
-                return;
-            }
-
-            submitCreate({
-                applicationId: parseInt(applicationId),
-                userId: parseInt(userId),
-                maxDevices: maxDevices,
-                startDate: startDate ? new Date(startDate).toISOString() : null,
-                endDate: endDate ? new Date(endDate).toISOString() : null
-            });
-        });
-    }
-
-    function submitCreate(data) {
-        $.ajax({
-            url: '@Url.Action("Create", "Licenses")',
-            method: 'POST',
-            contentType: 'application/json',
-            headers: {
-                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-            },
-            data: JSON.stringify(data),
-            success: function(result) {
-                if (result.success) {
-                    DevExpress.ui.notify("License created successfully!", "success", 2000);
-                    createPopup.hide();
-                    location.reload();
+            $("#neverExpires").on("change", function () {
+                if (this.checked) {
+                    $("#endDate").val("").prop("disabled", true);
                 } else {
-                    DevExpress.ui.notify(result.message || "Failed to create license", "error", 3000);
+                    $("#endDate").prop("disabled", false);
                 }
-            },
-            error: function(xhr) {
-                const message = xhr.responseJSON?.message || "An error occurred while creating the license";
-                DevExpress.ui.notify(message, "error", 3000);
-            }
-        });
-    }
-</script>
+            });
+
+            updateApplicationDropdown();
+            updateUserDropdown();
+
+            $("#createForm").on("submit", function (e) {
+                e.preventDefault();
+
+                const applicationId = $("#appSelect").val();
+                const userId = $("#userSelect").val();
+                const maxDevices = parseInt($("#maxDevices").val());
+                const startDate = $("#startDate").val();
+                const endDate = $("#neverExpires").is(":checked") ? null : $("#endDate").val();
+
+                if (!applicationId || !userId || !maxDevices) {
+                    DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
+                    return;
+                }
+
+                submitCreate({
+                    applicationId: parseInt(applicationId),
+                    userId: parseInt(userId),
+                    maxDevices: maxDevices,
+                    startDate: startDate ? new Date(startDate).toISOString() : null,
+                    endDate: endDate ? new Date(endDate).toISOString() : null
+                });
+            });
+        }
+
+        function submitCreate(data) {
+            $.ajax({
+                url: '@Url.Action("Create", "Licenses")',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: JSON.stringify(data),
+                success: function (result) {
+                    if (result.success) {
+                        DevExpress.ui.notify("License created successfully!", "success", 2000);
+                        createPopup.hide();
+                        location.reload();
+                    } else {
+                        DevExpress.ui.notify(result.message || "Failed to create license", "error", 3000);
+                    }
+                },
+                error: function (xhr) {
+                    const message = xhr.responseJSON?.message || "An error occurred while creating the license";
+                    DevExpress.ui.notify(message, "error", 3000);
+                }
+            });
+        }
+    </script>
 }
