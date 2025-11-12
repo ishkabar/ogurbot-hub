@@ -172,28 +172,28 @@
 </div>
 
 <!-- Containers Card -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
+<div class="row mb-4" style="height: calc(50vh - 250px); min-height: 300px;">
+    <div class="col-12 h-100">
+        <div class="card h-100 d-flex flex-column">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Docker Containers (<span id="containersCount">@Model.Containers.Count</span>)</h5>
             </div>
-            <div class="card-body">
-                <div id="containersGrid"></div>
+            <div class="card-body flex-grow-1 overflow-hidden p-0">
+                <div id="containersGrid" class="h-100 w-100"></div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Websites Card -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
+<div class="row" style="height: calc(50vh - 250px); min-height: 300px;">
+    <div class="col-12 h-100">
+        <div class="card h-100 d-flex flex-column">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Monitored Websites (<span id="websitesCount">@Model.Websites.Count</span>)</h5>
             </div>
-            <div class="card-body">
-                <div id="websitesGrid"></div>
+            <div class="card-body flex-grow-1 overflow-hidden p-0">
+                <div id="websitesGrid" class="h-100 w-100"></div>
             </div>
         </div>
     </div>
@@ -353,10 +353,14 @@
 
             containersGrid = $("#containersGrid").dxDataGrid({
                 dataSource: vpsData.containers,
+                height: "100%",
                 showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: true,
                 columnAutoWidth: true,
+                allowColumnReordering: true,
+        allowColumnResizing: true,
+        columnResizingMode: "widget",
                 noDataText: "No containers found",
                 columns: [
                     {dataField: "Name", caption: "Name", width: 200},
@@ -402,10 +406,14 @@
 
             websitesGrid = $("#websitesGrid").dxDataGrid({
                 dataSource: vpsData.websites,
+                height: "100%",
                 showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: true,
                 columnAutoWidth: true,
+                allowColumnReordering: true,
+        allowColumnResizing: true,
+        columnResizingMode: "widget",
                 noDataText: "No websites found",
                 columns: [
                     {dataField: "Domain", caption: "Domain", width: 250},
