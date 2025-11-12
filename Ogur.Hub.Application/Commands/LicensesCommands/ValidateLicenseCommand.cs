@@ -203,6 +203,7 @@ public sealed class ValidateLicenseCommandHandler : IRequestHandler<ValidateLice
             RevokedAt: null,
             RevocationReason: null,
             LastValidatedAt: DateTime.UtcNow,
-            ValidationCount: 0);
+            ValidationCount: 0,
+            Description:license.Description);
     }
 }

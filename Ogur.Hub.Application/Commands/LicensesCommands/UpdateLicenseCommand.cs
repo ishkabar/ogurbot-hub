@@ -17,7 +17,8 @@ public sealed record UpdateLicenseCommand(
     int LicenseId,
     int MaxDevices,
     DateTime? ExpiresAt,
-    int Status) : IRequest<LicenseDto?>;
+    int Status,
+    string? Description) : IRequest<LicenseDto?>;
 
 /// <summary>
 /// Handler for UpdateLicenseCommand
@@ -50,7 +51,7 @@ public sealed class UpdateLicenseCommandHandler : IRequestHandler<UpdateLicenseC
             return null;
         }
 
-        license.Update(request.MaxDevices, request.ExpiresAt, (LicenseStatus)request.Status);
+        license.Update(request.MaxDevices, request.ExpiresAt, (LicenseStatus)request.Status, request.Description);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -68,6 +69,8 @@ public sealed class UpdateLicenseCommandHandler : IRequestHandler<UpdateLicenseC
             null,
             null,
             null,
-            0);
+            0,
+            license.Description);
+
     }
 }

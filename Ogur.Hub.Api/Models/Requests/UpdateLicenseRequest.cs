@@ -23,4 +23,9 @@ public sealed record UpdateLicenseRequest
     /// License status
     /// </summary>
     public int Status { get; init; }
+    
+    /// <summary>
+    /// License description
+    /// </summary>
+    public string? Description { get; init; }
 }

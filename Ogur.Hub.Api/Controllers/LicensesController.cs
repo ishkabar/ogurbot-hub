@@ -118,7 +118,7 @@ public sealed class LicensesController : ControllerBase
         CancellationToken cancellationToken)
     {
         _logger.LogWarning("Received update request: {@Request}", request);
-        var command = new UpdateLicenseCommand(id, request.MaxDevices, request.ExpiresAt, request.Status);
+        var command = new UpdateLicenseCommand(id, request.MaxDevices, request.ExpiresAt, request.Status, request.Description);
         var license = await _mediator.Send(command, cancellationToken);
 
         if (license is null)

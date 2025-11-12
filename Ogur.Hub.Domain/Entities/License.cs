@@ -55,6 +55,11 @@ public sealed class License : AggregateRoot<int>
     /// Gets the current status of the license.
     /// </summary>
     public LicenseStatus Status { get; private set; } = LicenseStatus.Active;
+    
+    /// <summary>
+    /// Gets or sets the license description.
+    /// </summary>
+    public string? Description { get; private set; }
 
     /// <summary>
     /// Gets the application this license is for.
@@ -74,7 +79,6 @@ public sealed class License : AggregateRoot<int>
     private License()
     {
     }
-
     /// <summary>
     /// Creates a new license instance.
     /// </summary>
@@ -83,13 +87,15 @@ public sealed class License : AggregateRoot<int>
     /// <param name="maxDevices">Maximum allowed devices.</param>
     /// <param name="startDate">License start date.</param>
     /// <param name="endDate">License end date.</param>
+    /// <param name="description">License description.</param>
     /// <returns>New license instance.</returns>
     public static License Create(
         int applicationId,
         int userId,
         int maxDevices = 2,
         DateTime? startDate = null,
-        DateTime? endDate = null)
+        DateTime? endDate = null,
+        string? description = null)
     {
         var license = new License
         {
@@ -100,7 +106,8 @@ public sealed class License : AggregateRoot<int>
             StartDate = startDate ?? DateTime.UtcNow,
             EndDate = endDate,
             IsActive = true,
-            Status = LicenseStatus.Active
+            Status = LicenseStatus.Active,
+            Description = description
         };
 
         return license;
@@ -174,13 +181,14 @@ public sealed class License : AggregateRoot<int>
     /// <param name="maxDevices">Maximum devices</param>
     /// <param name="endDate">Expiration date</param>
     /// <param name="status">License status</param>
-    public void Update(int maxDevices, DateTime? endDate, LicenseStatus status)
+    /// <param name="description">License description</param>
+    public void Update(int maxDevices, DateTime? endDate, LicenseStatus status, string? description)
     {
         MaxDevices = maxDevices;
         EndDate = endDate;
         Status = status;
+        Description = description;
 
-        // Update IsActive based on status
         IsActive = status == LicenseStatus.Active;
         UpdateTimestamp();
     }

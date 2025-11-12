@@ -272,6 +272,24 @@ body.dark-mode .dx-datagrid-rowsview .dx-row-alt {
     padding: 0.35em 0.65em;
 }
 
+.card-body {
+    padding: 1rem;
+}
+#licensesGrid {
+    height: 600px;
+}
+.content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 56px); /* 56px to wysokość navbara */
+    overflow: hidden;
+}
+
+.row.flex-grow-1 {
+    flex: 1;
+    min-height: 0;
+}
+
 /* Loading Spinner */
 .loading-spinner {
     display: flex;

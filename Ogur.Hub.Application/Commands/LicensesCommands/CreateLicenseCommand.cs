@@ -5,6 +5,7 @@
 using Ogur.Hub.Application.Common.Interfaces;
 using Ogur.Hub.Application.DTO;
 using Ogur.Hub.Domain.Entities;
+using Ogur.Hub.Domain.Enums;
 using MediatR;
 
 namespace Ogur.Hub.Application.Commands.LicensesCommands;
@@ -17,12 +18,14 @@ namespace Ogur.Hub.Application.Commands.LicensesCommands;
 /// <param name="MaxDevices">Maximum devices allowed.</param>
 /// <param name="StartDate">License start date.</param>
 /// <param name="EndDate">License end date.</param>
+/// <param name="Description">License description.</param>
 public sealed record CreateLicenseCommand(
     int ApplicationId,
     int UserId,
     int MaxDevices = 2,
     DateTime? StartDate = null,
-    DateTime? EndDate = null) : IRequest<LicenseDto>;
+    DateTime? EndDate = null,
+    string? Description = null) : IRequest<LicenseDto>;
 
 /// <summary>
 /// Handler for creating licenses.
@@ -53,7 +56,9 @@ public sealed class CreateLicenseCommandHandler : IRequestHandler<CreateLicenseC
             userId: request.UserId,
             maxDevices: request.MaxDevices,
             startDate: request.StartDate,
-            endDate: request.EndDate);
+            endDate: request.EndDate,
+            description: request.Description);
+
 
         await _licenseRepository.AddAsync(license, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -72,6 +77,7 @@ public sealed class CreateLicenseCommandHandler : IRequestHandler<CreateLicenseC
             RevokedAt: null,
             RevocationReason: null,
             LastValidatedAt: null,
-            ValidationCount: 0);
+            ValidationCount: 0,
+            Description: license.Description);
     }
 }

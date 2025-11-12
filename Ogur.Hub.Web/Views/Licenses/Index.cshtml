@@ -88,14 +88,14 @@
 </div>
 
 <!-- Licenses Grid -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
+<div class="row" style="height: calc(100vh - 400px); min-height: 500px;">
+    <div class="col-12 h-100">
+        <div class="card h-100 d-flex flex-column">
             <div class="card-header">
                 <h5 class="mb-0">All Licenses</h5>
             </div>
-            <div class="card-body">
-                <div id="licensesGrid"></div>
+            <div class="card-body flex-grow-1 overflow-hidden p-0">
+                <div id="licensesGrid" class="h-100 w-100"></div>
             </div>
         </div>
     </div>
@@ -185,11 +185,15 @@
             setTimeout(function () {
                 licensesGrid = $("#licensesGrid").dxDataGrid({
                     dataSource: licenses,
+                    height: "100%",
                     showBorders: true,
                     showRowLines: true,
                     rowAlternationEnabled: true,
                     hoverStateEnabled: true,
                     columnAutoWidth: true,
+                    allowColumnReordering: true,
+                    allowColumnResizing: true,
+                    columnResizingMode: "widget",
                     noDataText: "No licenses found",
                     filterRow: {visible: true},
                     headerFilter: {visible: true},
@@ -207,6 +211,7 @@
                             }
                         },
                         {dataField: "ApplicationName", caption: "Application", width: 180},
+                        {dataField: "Description", caption: "Description", width: 200},
                         {
                             dataField: "RegisteredDevices",
                             caption: "Devices",
@@ -373,6 +378,11 @@
             <div class="mb-3">
                 <label class="form-label">Max Devices *</label>
                 <input type="number" class="form-control" id="editMaxDevices" value="${license.MaxDevices}" min="1" max="10" required>
+                </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" id="editDescription" rows="3" maxlength="500">${license.Description || ''}</textarea>
+            <small class="form-text text-muted">Optional description (max 500 characters)</small>
             </div>
             <div class="mb-3">
                 <label class="form-label">Expires At</label>
@@ -554,15 +564,20 @@
             if (license) showEdit(license);
         }
 
+
+        // File: Hub.Web/wwwroot/js/licenses.js
+        // Project: Hub.Web
+
         function submitEdit() {
             const data = {
                 maxDevices: parseInt($("#editMaxDevices").val()),
                 expiresAt: $("#editExpiresAt").val() ? new Date($("#editExpiresAt").val()).toISOString() : null,
-                status: parseInt($("#editStatus").val())
+                status: parseInt($("#editStatus").val()),
+                description: $("#editDescription").val() || null
             };
 
             $.ajax({
-                url: apiBaseUrl  + '/api/licenses/' + $("#editId").val(),
+                url: apiBaseUrl + '/api/licenses/' + $("#editId").val(),
                 method: 'PUT',
                 contentType: 'application/json',
                 headers: {'Authorization': 'Bearer ' + authToken},
@@ -571,20 +586,30 @@
                     DevExpress.ui.notify("License updated!", "success", 2000);
                     editPopup.hide();
 
-                    // Pobierz świeże dane z API
                     $.ajax({
-                        url: apiBaseUrl  + '/api/licenses',
+                        url: apiBaseUrl + '/api/licenses',
                         headers: { 'Authorization': 'Bearer ' + authToken },
                         success: function(result) {
-                            const freshLicenses = result.data || result;
+                            const freshLicenses = (result.data || result).map(l => ({
+                                Id: l.id,
+                                LicenseKey: l.licenseKey,
+                                ApplicationId: l.applicationId,
+                                ApplicationName: l.applicationName,
+                                UserId: l.userId,
+                                MaxDevices: l.maxDevices,
+                                RegisteredDevices: l.registeredDevices,
+                                IssuedAt: l.issuedAt,
+                                ExpiresAt: l.expiresAt,
+                                Status: l.status,
+                                ValidationCount: l.validationCount,
+                                LastValidatedAt: l.lastValidatedAt,
+                                Description: l.description
+                            }));
 
-                            // Aktualizuj grid
-                            licensesGrid.option("dataSource", freshLicenses);
-                            licensesGrid.refresh();
-
-                            // Aktualizuj zmienną globalną
                             licenses.length = 0;
-                            licenses.push(...freshLicenses);
+                            Array.prototype.push.apply(licenses, freshLicenses);
+
+                            licensesGrid.option("dataSource", [...licenses]);
                         }
                     });
                 },

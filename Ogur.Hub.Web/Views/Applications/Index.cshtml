@@ -97,14 +97,14 @@
 </div>
 
 <!-- Applications Grid -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
+<div class="row" style="height: calc(100vh - 400px); min-height: 500px;">
+    <div class="col-12 h-100">
+        <div class="card h-100 d-flex flex-column">
             <div class="card-header">
                 <h5 class="mb-0">All Applications</h5>
             </div>
-            <div class="card-body">
-                <div id="applicationsGrid"></div>
+            <div class="card-body flex-grow-1 overflow-hidden p-0">
+                <div id="applicationsGrid" class="h-100 w-100"></div>
             </div>
         </div>
     </div>
@@ -187,11 +187,15 @@
             setTimeout(function () {
                 applicationsGrid = $("#applicationsGrid").dxDataGrid({
                     dataSource: applications,
+                    height: "100%",
                     showBorders: true,
                     showRowLines: true,
                     rowAlternationEnabled: true,
                     hoverStateEnabled: true,
                     columnAutoWidth: true,
+                    allowColumnReordering: true,
+        allowColumnResizing: true,
+        columnResizingMode: "widget",
                     noDataText: "No applications found",
                     filterRow: {visible: true},
                     headerFilter: {visible: true},
@@ -256,9 +260,6 @@
         }
 
         function showDetails(app) {
-            //detailsPopup.option("title", "Application Details: " + app.DisplayName);
-            //renderDetails(app);
-            //detailsPopup.show();
             pendingDetailsData = app;
             detailsPopup.option("title", "Application Details: " + app.DisplayName);
             detailsPopup.show();

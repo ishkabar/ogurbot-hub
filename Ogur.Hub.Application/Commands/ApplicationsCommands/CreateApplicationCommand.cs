@@ -16,11 +16,13 @@ namespace Ogur.Hub.Application.Commands.ApplicationsCommands;
 /// <param name="DisplayName">Display name.</param>
 /// <param name="CurrentVersion">Current version.</param>
 /// <param name="Description">Optional description.</param>
+/// <param name="IsActive">Whether application is active.</param>
 public sealed record CreateApplicationCommand(
     string Name,
     string DisplayName,
     string CurrentVersion,
-    string? Description = null);
+    string? Description = null,
+    bool IsActive = true);
 
 /// <summary>
 /// Result of creating an application.
@@ -69,6 +71,9 @@ public sealed class CreateApplicationCommandHandler
             command.DisplayName,
             command.CurrentVersion,
             command.Description);
+            
+            if (!command.IsActive)
+            application.Deactivate();
 
         await _applicationRepository.AddAsync(application, ct);
         await _context.SaveChangesAsync(ct);

@@ -66,7 +66,8 @@ public sealed class GetLicensesQueryHandler : IRequestHandler<GetLicensesQuery, 
                 l.Status == LicenseStatus.Revoked ? l.UpdatedAt : null,
                 null,
                 null,
-                0
+                0,
+                l.Description
             ))
             .ToListAsync(cancellationToken);
 

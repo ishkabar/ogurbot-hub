@@ -23,6 +23,8 @@ namespace Ogur.Hub.Application.DTO;
 /// <param name="RevocationReason">Revocation reason.</param>
 /// <param name="LastValidatedAt">Last validation timestamp.</param>
 /// <param name="ValidationCount">Validation count.</param>
+/// /// <param name="Description">License description</param>
+
 public sealed record LicenseDto(
     int Id,
     string LicenseKey,
@@ -37,4 +39,5 @@ public sealed record LicenseDto(
     DateTime? RevokedAt,
     string? RevocationReason,
     DateTime? LastValidatedAt,
-    int ValidationCount);
+    int ValidationCount,
+    string? Description);

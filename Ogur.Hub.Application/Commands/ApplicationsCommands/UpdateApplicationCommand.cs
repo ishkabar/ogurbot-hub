@@ -1,6 +1,6 @@
 ﻿// File: Ogur.Hub.Application/Commands/Applications/UpdateApplicationCommand.cs
 // Project: Ogur.Hub.Application
-// Namespace: Ogur.Hub.Application.Commands.Applications
+// Namespace: Ogur.Hub.Application.Commands.ApplicationsCommands
 
 using Ogur.Hub.Application.Common.Interfaces;
 using Ogur.Hub.Application.Common.Results;
@@ -13,12 +13,18 @@ namespace Ogur.Hub.Application.Commands.ApplicationsCommands;
 /// Command to update an application.
 /// </summary>
 /// <param name="ApplicationId">Application ID to update.</param>
+/// <param name="Name">Application name.</param>
 /// <param name="DisplayName">New display name.</param>
+/// <param name="CurrentVersion">Current version.</param>
 /// <param name="Description">New description.</param>
+/// <param name="IsActive">Whether application is active.</param>
 public sealed record UpdateApplicationCommand(
     int ApplicationId,
+    string Name,
     string DisplayName,
-    string? Description = null);
+    string CurrentVersion,
+    string? Description,
+    bool IsActive);
 
 /// <summary>
 /// Handler for UpdateApplicationCommand.
@@ -53,7 +59,7 @@ public sealed class UpdateApplicationCommandHandler
         if (application is null)
             return Result.Failure($"Application with ID {command.ApplicationId} not found");
 
-        application.Update(command.DisplayName, command.Description);
+        application.Update(command.Name, command.DisplayName, command.CurrentVersion, command.Description, command.IsActive);
         _applicationRepository.Update(application);
         await _context.SaveChangesAsync(ct);
 
