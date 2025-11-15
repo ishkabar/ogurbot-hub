@@ -24,6 +24,10 @@ RUN mkdir -p /root/.nuget/NuGet && \
 
 # Copy project file
 COPY ["Ogur.Hub.Web/Ogur.Hub.Web.csproj", "Ogur.Hub.Web/"]
+COPY ["Ogur.Hub.Api/Ogur.Hub.Api.csproj", "Ogur.Hub.Api/"]
+COPY ["Ogur.Hub.Application/Ogur.Hub.Application.csproj", "Ogur.Hub.Application/"]
+COPY ["Ogur.Hub.Domain/Ogur.Hub.Domain.csproj", "Ogur.Hub.Domain/"]
+COPY ["Ogur.Hub.Infrastructure/Ogur.Hub.Infrastructure.csproj", "Ogur.Hub.Infrastructure/"]
 
 # Restore dependencies
 RUN dotnet restore "Ogur.Hub.Web/Ogur.Hub.Web.csproj"
