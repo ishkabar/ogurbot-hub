@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Ogur.Hub.Web.Infrastructure;
 using Ogur.Hub.Web.Models.ViewModels;
 using Ogur.Hub.Web.Services;
+using Ogur.Hub.Application.DTO;
+using Ogur.Hub.Api.Models.Requests;
+
 
 namespace Ogur.Hub.Web.Controllers;
 

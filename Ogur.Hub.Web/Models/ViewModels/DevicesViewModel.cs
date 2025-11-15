@@ -3,6 +3,7 @@
 // Namespace: Ogur.Hub.Web.Models.ViewModels
 
 using Ogur.Hub.Web.Models.ViewModels.Base;
+using Ogur.Hub.Application.DTO;
 
 namespace Ogur.Hub.Web.Models.ViewModels;
 
@@ -14,7 +15,7 @@ public sealed class DevicesViewModel : BasePageViewModel
     /// <summary>
     /// List of devices
     /// </summary>
-    public List<Services.DeviceDto> Devices { get; set; } = new();
+    public List<DeviceDto> Devices { get; set; } = new();
 
     /// <summary>
     /// Optional license ID filter

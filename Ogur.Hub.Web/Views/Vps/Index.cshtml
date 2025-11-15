@@ -172,28 +172,28 @@
 </div>
 
 <!-- Containers Card -->
-<div class="row mb-4" style="height: calc(50vh - 250px); min-height: 300px;">
-    <div class="col-12 h-100">
-        <div class="card h-100 d-flex flex-column">
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Docker Containers (<span id="containersCount">@Model.Containers.Count</span>)</h5>
             </div>
-            <div class="card-body flex-grow-1 overflow-hidden p-0">
-                <div id="containersGrid" class="h-100 w-100"></div>
+            <div class="card-body p-0">
+                <div id="containersGrid"></div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Websites Card -->
-<div class="row" style="height: calc(50vh - 250px); min-height: 300px;">
-    <div class="col-12 h-100">
-        <div class="card h-100 d-flex flex-column">
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Monitored Websites (<span id="websitesCount">@Model.Websites.Count</span>)</h5>
             </div>
-            <div class="card-body flex-grow-1 overflow-hidden p-0">
-                <div id="websitesGrid" class="h-100 w-100"></div>
+            <div class="card-body p-0">
+                <div id="websitesGrid"></div>
             </div>
         </div>
     </div>
@@ -204,24 +204,39 @@
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <script type="text/javascript" src="https://code.jscharting.com/latest/jscharting.js"></script>
+    <script type="text/javascript" src="https://code.jscharting.com/latest/modules/types.js"></script>
+
     <script>
         let containersGrid;
         let websitesGrid;
+
         let addWebsitePopup;
+        const apiBaseUrl = '@ViewBag.ApiBaseUrl';
+        const authToken = '@Context.Session.GetString("AuthToken")';
+
+        // Helper function to convert PascalCase to camelCase
+        function toCamelCase(obj) {
+            if (Array.isArray(obj)) {
+                return obj.map(item => toCamelCase(item));
+            } else if (obj !== null && typeof obj === 'object') {
+                return Object.keys(obj).reduce((result, key) => {
+                    const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+                    result[camelKey] = toCamelCase(obj[key]);
+                    return result;
+                }, {});
+            }
+            return obj;
+        }
 
         const vpsData = {
-            containers: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Containers)),
-            websites: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Websites)),
+            containers: toCamelCase(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Containers))),
+            websites: toCamelCase(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Websites))),
             apiBaseUrl: "@Model.ApiBaseUrl"
         };
 
-        console.log("Initial VPS data loaded:", {
-            containersCount: vpsData.containers.length,
-            websitesCount: vpsData.websites.length
-        });
-
         let cpuGauge, memoryGauge, diskGauge, networkGauge;
-        let isGaugeView = true; // Default to gauge view
+        let isGaugeView = true;
 
         $(function () {
             initializeContainersGrid();
@@ -231,107 +246,239 @@
             setupSignalR();
         });
 
+
         function initializeGauges() {
-            cpuGauge = $("#cpuGauge").dxCircularGauge({
-                scale: {
-                    startValue: 0,
-                    endValue: 100,
-                    tickInterval: 20
-                },
-                rangeContainer: {
-                    ranges: [
-                        {startValue: 0, endValue: 50, color: "#92d050"},
-                        {startValue: 50, endValue: 75, color: "#ffc000"},
-                        {startValue: 75, endValue: 100, color: "#ff0000"}
-                    ]
-                },
-                value: @(Model.CurrentResources?.CpuUsagePercent ?? 0),
-                valueIndicator: {
-                    type: "twoColorNeedle",
-                    color: "#8e44ad"
-                },
-                title: {
-                    text: '@(Model.CurrentResources?.CpuUsagePercent.ToString("F2") ?? "0")%',
-                    font: {size: 20, weight: 600}
-                }
-            }).dxCircularGauge("instance");
+            const colors = getGaugeColors();
 
-            memoryGauge = $("#memoryGauge").dxCircularGauge({
-                scale: {
-                    startValue: 0,
-                    endValue: 100,
-                    tickInterval: 20
+            cpuGauge = JSC.chart('cpuGauge', {
+                type: 'gauge',
+                animation_duration: 500,
+                legend_visible: false,                
+                box_fill: colors.background,
+                debug: false,
+                xAxis: { spacingPercentage: 0.3 },
+                yAxis: {
+                    defaultTick: {
+                        padding: 8,
+                        label_style_fontSize: '16px',
+                        label_color: colors.textColor
+                    },
+                    line: {
+                        width: 8,
+                        color: 'smartPalette',
+                        breaks_gap: 0.00
+                    },
+                    scale_range: [0, 100]
                 },
-                rangeContainer: {
-                    ranges: [
-                        {startValue: 0, endValue: 50, color: "#92d050"},
-                        {startValue: 50, endValue: 75, color: "#ffc000"},
-                        {startValue: 75, endValue: 100, color: "#ff0000"}
-                    ]
+                palette: {
+                    pointValue: '{%value/100}',
+                    colors: colors.colors
                 },
-                value: @(Model.CurrentResources?.MemoryUsagePercent ?? 0),
-                valueIndicator: {
-                    type: "twoColorNeedle",
-                    color: "#27ae60"
+                defaultTooltip_enabled: false,
+                defaultSeries: {
+                    angle: {sweep: 180},
+                    shape: {
+                        innerSize: '70%',
+                        label: {
+                            text: '<span color="%color">{%sum:n1}</span><br/><span color="' + colors.labelColor + '" fontSize="16px">%</span>',
+                            style_fontSize: '46px',
+                            style_color: colors.textColor,
+                            verticalAlign: 'middle'
+                        }
+                    }
                 },
-                title: {
-                    text: '@(Model.CurrentResources?.MemoryUsagePercent.ToString("F2") ?? "0")%',
-                    font: {size: 20, weight: 600}
-                }
-            }).dxCircularGauge("instance");
+                series: [{
+                    type: 'column roundcaps',
+                    points: [{id: 'cpu', x: 'CPU', y: @(Model.CurrentResources?.CpuUsagePercent ?? 0)}]
+                }]
+            });
 
-            diskGauge = $("#diskGauge").dxCircularGauge({
-                scale: {
-                    startValue: 0,
-                    endValue: 100,
-                    tickInterval: 20
+            // Memory Gauge
+            memoryGauge = JSC.chart('memoryGauge', {
+                type: 'gauge',
+                animation_duration: 500,
+                legend_visible: false,
+                box_fill: colors.background,
+                debug: false,
+                xAxis: { spacingPercentage: 0.3 },
+                yAxis: {
+                    defaultTick: {
+                        padding: 8,
+                        label_style_fontSize: '16px',
+                        label_color: colors.textColor
+                    },
+                    line: {
+                        width: 10,
+                        color: 'smartPalette',
+                        breaks_gap: 0.00
+                    },
+                    scale_range: [0, 100]
                 },
-                rangeContainer: {
-                    ranges: [
-                        {startValue: 0, endValue: 50, color: "#92d050"},
-                        {startValue: 50, endValue: 75, color: "#ffc000"},
-                        {startValue: 75, endValue: 100, color: "#ff0000"}
-                    ]
+                palette: {
+                    pointValue: '{%value/100}',
+                    colors: colors.colors
                 },
-                value: @(Model.CurrentResources?.DiskUsagePercent ?? 0),
-                valueIndicator: {
-                    type: "twoColorNeedle",
-                    color: "#f39c12"
+                defaultTooltip_enabled: false,
+                defaultSeries: {
+                    angle: {sweep: 180},
+                    shape: {
+                        innerSize: '70%',
+                        label: {
+                            text: '<span color="%color">{%sum:n1}</span><br/><span color="' + colors.labelColor + '" fontSize="16px">%</span>',
+                            style_fontSize: '46px',
+                            style_color: colors.textColor,
+                            verticalAlign: 'middle'
+                        }
+                    }
                 },
-                title: {
-                    text: '@(Model.CurrentResources?.DiskUsagePercent.ToString("F2") ?? "0")%',
-                    font: {size: 20, weight: 600}
-                }
-            }).dxCircularGauge("instance");
+                series: [{
+                    type: 'column roundcaps',
+                    points: [{id: 'mem', x: 'Memory', y: @(Model.CurrentResources?.MemoryUsagePercent ?? 0)}]
+                }]
+            });
 
-            // Network gauge with dynamic scale based on current traffic
-            var maxNetworkScale = Math.max(100, @(Model.CurrentResources?.NetworkRxMbps ?? 0) * 1.2);
-            
-            networkGauge = $("#networkGauge").dxCircularGauge({
-                scale: {
-                    startValue: 0,
-                    endValue: maxNetworkScale,
-                    tickInterval: maxNetworkScale > 100 ? 50 : 20
+            // Disk Gauge
+            diskGauge = JSC.chart('diskGauge', {
+                type: 'gauge',
+                animation_duration: 500,
+                legend_visible: false,
+                box_fill: colors.background,
+                debug: false,
+                xAxis: { spacingPercentage: 0.3 },
+                yAxis: {
+                    defaultTick: {
+                        padding: 8,
+                        label_style_fontSize: '16px',
+                        label_color: colors.textColor
+                    },
+                    line: {
+                        width: 10,
+                        color: 'smartPalette',
+                        breaks_gap: 0.00
+                    },
+                    scale_range: [0, 100]
                 },
-                rangeContainer: {
-                    ranges: [
-                        {startValue: 0, endValue: maxNetworkScale * 0.5, color: "#92d050"},
-                        {startValue: maxNetworkScale * 0.5, endValue: maxNetworkScale * 0.8, color: "#ffc000"},
-                        {startValue: maxNetworkScale * 0.8, endValue: maxNetworkScale, color: "#ff0000"}
-                    ]
+                palette: {
+                    pointValue: '{%value/100}',
+                    colors: colors.colors
                 },
-                value: @(Model.CurrentResources?.NetworkRxMbps ?? 0),
-                valueIndicator: {
-                    type: "twoColorNeedle",
-                    color: "#3498db"
+                defaultTooltip_enabled: false,
+                defaultSeries: {
+                    angle: {sweep: 180},
+                    shape: {
+                        innerSize: '70%',
+                        label: {
+                            text: '<span color="%color">{%sum:n1}</span><br/><span color="' + colors.labelColor + '" fontSize="16px">%</span>',
+                            style_fontSize: '46px',
+                            style_color: colors.textColor,
+                            verticalAlign: 'middle'
+                        }
+                    }
                 },
-                title: {
-                    text: '@(Model.CurrentResources?.NetworkRxMbps.ToString("F2") ?? "0") Mbps',
-                    font: {size: 20, weight: 600}
-                }
-            }).dxCircularGauge("instance");
+                series: [{
+                    type: 'column roundcaps',
+                    points: [{id: 'disk', x: 'Disk', y: @(Model.CurrentResources?.DiskUsagePercent ?? 0)}]
+                }]
+            });
+
+            // Network Gauge (dynamic scale)
+            networkGauge = JSC.chart('networkGauge', {
+                type: 'gauge',
+                animation_duration: 500,
+                legend_visible: false,
+                box_fill: colors.background,
+                debug: false,
+                xAxis: { spacingPercentage: 0.3 },
+                yAxis: {
+                    defaultTick: {
+                        padding: 8,
+                        label_style_fontSize: '16px',
+                        label_color: colors.textColor
+                    },
+                    line: {
+                        width: 10,
+                        color: 'smartPalette',
+                        breaks_gap: 0.00
+                    },
+                    scale_range: [0, 100]
+                },
+                palette: {
+                    pointValue: '{%value/100}',
+                    colors: colors.colors
+                },
+                defaultTooltip_enabled: false,
+                defaultSeries: {
+                    angle: {sweep: 180},
+                    shape: {
+                        innerSize: '70%',
+                        label: {
+                            text: '<span color="%color">{%sum:n1}</span><br/><span color="' + colors.labelColor + '" fontSize="16px">%</span>',
+                            style_fontSize: '46px',
+                            style_color: colors.textColor,
+                            verticalAlign: 'middle'
+                        }
+                    }
+                },
+                series: [{
+                    type: 'column roundcaps',
+                    points: [{id: 'net', x: 'Network', y: @(Model.CurrentResources?.NetworkRxMbps ?? 0)}]
+                }]
+            });
         }
 
+        function updateGauges(resources) {
+            const cpuUsage = resources.cpuUsagePercent ?? resources.CpuUsagePercent ?? 0;
+            const memoryUsage = resources.memoryUsagePercent ?? resources.MemoryUsagePercent ?? 0;
+            const diskUsage = resources.diskUsagePercent ?? resources.DiskUsagePercent ?? 0;
+            const networkRx = resources.networkRxMbps ?? resources.NetworkRxMbps ?? 0;
+            const loadAvg = resources.loadAverage1Min ?? resources.LoadAverage1Min ?? 0;
+            const memoryUsed = resources.memoryUsedGb ?? resources.MemoryUsedGb ?? 0;
+            const memoryTotal = resources.memoryTotalGb ?? resources.MemoryTotalGb ?? 0;
+            const diskUsed = resources.diskUsedGb ?? resources.DiskUsedGb ?? 0;
+            const diskTotal = resources.diskTotalGb ?? resources.DiskTotalGb ?? 0;
+            const networkTx = resources.networkTxMbps ?? resources.NetworkTxMbps ?? 0;
+
+            console.log("Updating gauges:", cpuUsage, memoryUsage, diskUsage, networkRx);
+
+            // Update gauge values
+            if (cpuGauge && cpuGauge.series) {
+                cpuGauge.series(0).points([{id: 'cpu', x: 'CPU', y: cpuUsage}]);
+            }
+            if (memoryGauge && memoryGauge.series) {
+                memoryGauge.series(0).points([{id: 'mem', x: 'Memory', y: memoryUsage}]);
+            }
+            if (diskGauge && diskGauge.series) {
+                diskGauge.series(0).points([{id: 'disk', x: 'Disk', y: diskUsage}]);
+            }
+            if (networkGauge && networkGauge.series) {
+                networkGauge.series(0).points([{id: 'net', x: 'Network', y: networkRx}]);
+            }
+
+            // Update text details
+            $("#cpuLoadGauge").text(`Load: ${loadAvg.toFixed(2)}`);
+            $("#memoryDetailsGauge").text(`${memoryUsed.toFixed(2)} GB / ${memoryTotal.toFixed(2)} GB`);
+            $("#diskDetailsGauge").text(`${diskUsed.toFixed(2)} GB / ${diskTotal.toFixed(2)} GB`);
+            $("#networkTxGauge").text(`TX: ${networkTx.toFixed(2)} Mbps`);
+        }
+
+        function getGaugeColors() {
+            const isDark = document.documentElement.classList.contains('dark-mode') ||
+                document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            
+            const cardBg = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim();
+
+            const finalBg = cardBg || (isDark ? '#2d2d2d' : '#ffffff');
+
+            return {
+                background: finalBg,
+                textColor: isDark ? '#e0e0e0' : '#212529',
+                labelColor: isDark ? '#999999' : '#6c757d',
+                colors: isDark
+                    ? ['#4caf50', '#ff9800', '#f44336']
+                    : ['#92d050', '#ffc000', '#ff0000']
+            };
+        }
+        
         function toggleResourceView() {
             isGaugeView = !isGaugeView;
 
@@ -349,44 +496,46 @@
         }
 
         function initializeContainersGrid() {
-            console.log("Initializing containers grid with", vpsData.containers.length, "items");
 
             containersGrid = $("#containersGrid").dxDataGrid({
                 dataSource: vpsData.containers,
-                height: "100%",
+                height: 400,
                 showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: true,
                 columnAutoWidth: true,
                 allowColumnReordering: true,
-        allowColumnResizing: true,
-        columnResizingMode: "widget",
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
                 noDataText: "No containers found",
+                scrolling: {
+                    mode: "virtual"
+                },
                 columns: [
-                    {dataField: "Name", caption: "Name", width: 200},
-                    {dataField: "Image", caption: "Image", width: 250},
-                    {dataField: "State", caption: "State", width: 100},
-                    {dataField: "Status", caption: "Status", width: 150},
+                    {dataField: "name", caption: "Name", width: 200},
+                    {dataField: "image", caption: "Image", width: 250},
+                    {dataField: "state", caption: "State", width: 100},
+                    {dataField: "status", caption: "Status", width: 150},
                     {
-                        dataField: "CpuUsagePercent",
+                        dataField: "cpuUsagePercent",
                         caption: "CPU %",
                         width: 100,
                         format: {type: "fixedPoint", precision: 2}
                     },
                     {
-                        dataField: "MemoryUsagePercent",
+                        dataField: "memoryUsagePercent",
                         caption: "Memory %",
                         width: 100,
                         format: {type: "fixedPoint", precision: 2}
                     },
                     {
-                        dataField: "MemoryUsageMb",
+                        dataField: "memoryUsageMb",
                         caption: "Memory (MB)",
                         width: 120,
                         format: {type: "fixedPoint", precision: 2}
                     },
                     {
-                        dataField: "LastUpdatedAt",
+                        dataField: "lastUpdatedAt",
                         caption: "Last Updated",
                         dataType: "datetime",
                         format: "dd/MM/yyyy HH:mm:ss",
@@ -397,41 +546,72 @@
                 searchPanel: {visible: true},
                 filterRow: {visible: true}
             }).dxDataGrid("instance");
-
-            console.log("Containers grid initialized with", containersGrid.totalCount(), "rows");
         }
 
         function initializeWebsitesGrid() {
-            console.log("Initializing websites grid with", vpsData.websites.length, "items");
 
             websitesGrid = $("#websitesGrid").dxDataGrid({
                 dataSource: vpsData.websites,
-                height: "100%",
+                height: 400,
                 showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: true,
                 columnAutoWidth: true,
                 allowColumnReordering: true,
-        allowColumnResizing: true,
-        columnResizingMode: "widget",
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
                 noDataText: "No websites found",
+                scrolling: {
+                    mode: "virtual"
+                },
                 columns: [
-                    {dataField: "Domain", caption: "Domain", width: 250},
-                    {dataField: "ServiceName", caption: "Service", width: 150},
-                    {dataField: "ContainerName", caption: "Container", width: 150},
+                    {dataField: "domain", caption: "Domain", width: 250},
+                    {dataField: "serviceName", caption: "Service", width: 150},
+                    {dataField: "containerName", caption: "Container", width: 150},
                     {
-                        dataField: "IsActive",
-                        caption: "Status",
+                        dataField: "lastStatusCode",
+                        caption: "HTTP Code",
                         width: 100,
+                        alignment: "center"
+                    },
+                    {
+                        name: "statusBadge",
+                        caption: "Status",
+                        width: 120,
+                        alignment: "center",
+                        calculateCellValue: function (rowData) {
+                            return rowData.lastStatusCode;
+                        },
                         cellTemplate: function (container, options) {
-                            const status = options.value ?
-                                '<span class="badge bg-success">Active</span>' :
-                                '<span class="badge bg-danger">Down</span>';
-                            container.append(status);
+                            const statusCode = options.value;
+                            let badgeClass = "bg-secondary";
+                            let text = "N/A";
+
+                            if (!statusCode) {
+                                badgeClass = "bg-secondary";
+                                text = "N/A";
+                            } else if (statusCode >= 200 && statusCode < 300) {
+                                badgeClass = "bg-success";
+                                text = "Active";
+                            } else if (statusCode >= 300 && statusCode < 400) {
+                                badgeClass = "bg-info";
+                                text = `Redirect (${statusCode})`;
+                            } else if (statusCode >= 400 && statusCode < 500) {
+                                badgeClass = "bg-warning";
+                                text = `Valid (${statusCode})`;
+                            } else if (statusCode >= 500) {
+                                badgeClass = "bg-danger";
+                                text = `Error (${statusCode})`;
+                            }
+
+                            $("<span>")
+                                .addClass("badge " + badgeClass)
+                                .text(text)
+                                .appendTo(container);
                         }
                     },
                     {
-                        dataField: "SslEnabled",
+                        dataField: "sslEnabled",
                         caption: "SSL",
                         width: 80,
                         cellTemplate: function (container, options) {
@@ -442,17 +622,12 @@
                         }
                     },
                     {
-                        dataField: "LastStatusCode",
-                        caption: "HTTP Status",
-                        width: 120
-                    },
-                    {
-                        dataField: "LastResponseTimeMs",
+                        dataField: "lastResponseTimeMs",
                         caption: "Response (ms)",
                         width: 130
                     },
                     {
-                        dataField: "LastCheckedAt",
+                        dataField: "lastCheckedAt",
                         caption: "Last Checked",
                         dataType: "datetime",
                         format: "dd/MM/yyyy HH:mm:ss",
@@ -465,7 +640,7 @@
                             hint: "Delete",
                             icon: "trash",
                             onClick: function (e) {
-                                deleteWebsite(e.row.data.Id, e.row.data.Domain);
+                                deleteWebsite(e.row.data.id, e.row.data.domain);
                             }
                         }]
                     }
@@ -475,7 +650,6 @@
                 filterRow: {visible: true}
             }).dxDataGrid("instance");
 
-            console.log("Websites grid initialized with", websitesGrid.totalCount(), "rows");
         }
 
         function initializeAddWebsitePopup() {
@@ -616,27 +790,37 @@
                 .build();
 
             connection.on("VpsStatsUpdated", function (data) {
-                console.log("VPS stats updated via SignalR", data);
 
-                if (data.Containers && Array.isArray(data.Containers) && data.Containers.length > 0) {
-                    console.log("Updating containers:", data.Containers.length);
-                    containersGrid.option("dataSource", data.Containers);
+                // Handle both camelCase and PascalCase
+                const containers = data.Containers || data.containers;
+                const websites = data.Websites || data.websites;
+                const resources = data.Resources || data.resources;
+
+                if (containers && Array.isArray(containers) && containers.length > 0) {
+                    containersGrid.option("dataSource", containers);
                     containersGrid.refresh();
-                    $("#containersCount").text(data.Containers.length);
+                    $("#containersCount").text(containers.length);
+                } else {
+                    console.log("No containers data");
                 }
 
-                if (data.Websites && Array.isArray(data.Websites)) {
-                    console.log("Updating websites:", data.Websites.length);
+                if (websites && Array.isArray(websites)) {
                     websitesGrid.beginUpdate();
-                    websitesGrid.option("dataSource", data.Websites);
+                    websitesGrid.option("dataSource", websites);
                     websitesGrid.endUpdate();
-                    $("#websitesCount").text(data.Websites.length);
+                    $("#websitesCount").text(websites.length);
+                } else {
+                    console.log("No websites data");
                 }
 
-                if (data.Resources) {
+                if (resources) {
                     console.log("Updating resources");
-                    updateResourceCards(data.Resources);
+                    updateResourceCards(resources);
+                } else {
+                    console.log("No resources data");
                 }
+
+
             });
 
             connection.onreconnecting(() => {
@@ -660,75 +844,89 @@
         }
 
         function updateResourceCards(resources) {
-            // Update cards with 2 decimal precision
-            $("#cpuUsage").text(resources.CpuUsagePercent.toFixed(2) + "%");
-            $("#cpuLoad").text("Load: " + resources.LoadAverage1Min.toFixed(2));
-
-            $("#memoryUsage").text(resources.MemoryUsagePercent.toFixed(2) + "%");
-            $("#memoryDetails").text(
-                resources.MemoryUsedGb.toFixed(2) + " GB / " +
-                resources.MemoryTotalGb.toFixed(2) + " GB"
-            );
-
-            $("#diskUsage").text(resources.DiskUsagePercent.toFixed(2) + "%");
-            $("#diskDetails").text(
-                resources.DiskUsedGb.toFixed(2) + " GB / " +
-                resources.DiskTotalGb.toFixed(2) + " GB"
-            );
-
-            $("#networkRx").text(resources.NetworkRxMbps.toFixed(2) + " Mbps");
-            $("#networkTx").text("TX: " + resources.NetworkTxMbps.toFixed(2) + " Mbps");
-
-            // Update gauges with 2 decimal precision
-            cpuGauge.option("value", resources.CpuUsagePercent);
-            cpuGauge.option("title.text", resources.CpuUsagePercent.toFixed(2) + "%");
-            $("#cpuLoadGauge").text("Load: " + resources.LoadAverage1Min.toFixed(2));
-
-            memoryGauge.option("value", resources.MemoryUsagePercent);
-            memoryGauge.option("title.text", resources.MemoryUsagePercent.toFixed(2) + "%");
-            $("#memoryDetailsGauge").text(
-                resources.MemoryUsedGb.toFixed(2) + " GB / " +
-                resources.MemoryTotalGb.toFixed(2) + " GB"
-            );
-
-            diskGauge.option("value", resources.DiskUsagePercent);
-            diskGauge.option("title.text", resources.DiskUsagePercent.toFixed(2) + "%");
-            $("#diskDetailsGauge").text(
-                resources.DiskUsedGb.toFixed(2) + " GB / " +
-                resources.DiskTotalGb.toFixed(2) + " GB"
-            );
-
-            // Update network gauge with dynamic scaling for more responsive display
-            var currentRx = resources.NetworkRxMbps;
-            var currentMaxScale = networkGauge.option("scale.endValue");
-            var newMaxScale = Math.max(100, currentRx * 2); // Dynamic scale based on current traffic
-            
-            // Only update scale if traffic increased significantly
-            if (currentRx > currentMaxScale * 0.8) {
-                networkGauge.option("scale.endValue", newMaxScale);
-                networkGauge.option("scale.tickInterval", newMaxScale > 100 ? 50 : 20);
-                networkGauge.option("rangeContainer.ranges", [
-                    {startValue: 0, endValue: newMaxScale * 0.5, color: "#92d050"},
-                    {startValue: newMaxScale * 0.5, endValue: newMaxScale * 0.8, color: "#ffc000"},
-                    {startValue: newMaxScale * 0.8, endValue: newMaxScale, color: "#ff0000"}
-                ]);
+            if (!resources) {
+                console.error("No resources data!");
+                return;
             }
 
-            networkGauge.option("value", currentRx);
-            networkGauge.option("title.text", currentRx.toFixed(2) + " Mbps");
-            $("#networkTxGauge").text("TX: " + resources.NetworkTxMbps.toFixed(2) + " Mbps");
+            const cpuUsage = resources.cpuUsagePercent ?? resources.CpuUsagePercent ?? 0;
+            const memoryUsage = resources.memoryUsagePercent ?? resources.MemoryUsagePercent ?? 0;
+            const memoryUsed = resources.memoryUsedGb ?? resources.MemoryUsedGb ?? 0;
+            const memoryTotal = resources.memoryTotalGb ?? resources.MemoryTotalGb ?? 0;
+            const diskUsage = resources.diskUsagePercent ?? resources.DiskUsagePercent ?? 0;
+            const diskUsed = resources.diskUsedGb ?? resources.DiskUsedGb ?? 0;
+            const diskTotal = resources.diskTotalGb ?? resources.DiskTotalGb ?? 0;
+            const networkRx = resources.networkRxMbps ?? resources.NetworkRxMbps ?? 0;
+            const networkTx = resources.networkTxMbps ?? resources.NetworkTxMbps ?? 0;
+            const loadAvg = resources.loadAverage1Min ?? resources.LoadAverage1Min ?? 0;
+
+            console.log("Updating resources:", cpuUsage, memoryUsage, diskUsage, networkRx);
+
+            // Update card view
+            $("#cpuUsage").text(cpuUsage.toFixed(2) + "%");
+            $("#cpuLoad").text("Load: " + loadAvg.toFixed(2));
+            $("#memoryUsage").text(memoryUsage.toFixed(2) + "%");
+            $("#memoryDetails").text(memoryUsed.toFixed(2) + " GB / " + memoryTotal.toFixed(2) + " GB");
+            $("#diskUsage").text(diskUsage.toFixed(2) + "%");
+            $("#diskDetails").text(diskUsed.toFixed(2) + " GB / " + diskTotal.toFixed(2) + " GB");
+            $("#networkRx").text(networkRx.toFixed(2) + " Mbps");
+            $("#networkTx").text("TX: " + networkTx.toFixed(2) + " Mbps");
+
+            // Update JSCharting gauges
+            if (cpuGauge && cpuGauge.series) {
+                cpuGauge.series(0).options({
+                    points: [{id: 'cpu', x: 'CPU', y: cpuUsage}]
+                });
+            }
+
+            if (memoryGauge && memoryGauge.series) {
+                memoryGauge.series(0).options({
+                    points: [{id: 'mem', x: 'Memory', y: memoryUsage}]
+                });
+            }
+
+            if (diskGauge && diskGauge.series) {
+                diskGauge.series(0).options({
+                    points: [{id: 'disk', x: 'Disk', y: diskUsage}]
+                });
+            }
+
+            if (networkGauge && networkGauge.series) {
+                networkGauge.series(0).options({
+                    points: [{id: 'net', x: 'Network', y: networkRx}]
+                });
+            }
+
+            // Update text details below gauges
+            $("#cpuLoadGauge").text("Load: " + loadAvg.toFixed(2));
+            $("#memoryDetailsGauge").text(memoryUsed.toFixed(2) + " GB / " + memoryTotal.toFixed(2) + " GB");
+            $("#diskDetailsGauge").text(diskUsed.toFixed(2) + " GB / " + diskTotal.toFixed(2) + " GB");
+            $("#networkTxGauge").text("TX: " + networkTx.toFixed(2) + " Mbps");
         }
 
         function refreshAll() {
             DevExpress.ui.notify("Refreshing all data...", "info", 1000);
 
-            $.post('@Url.Action("RefreshContainers", "Vps")')
-                .then(() => $.post('@Url.Action("RefreshWebsites", "Vps")'))
+            $.ajax({
+                url: apiBaseUrl + '/api/vps/containers/refresh',
+                method: 'POST',
+                headers: {'Authorization': 'Bearer ' + authToken}
+            })
+                .then(() => {
+                    return $.ajax({
+                        url: apiBaseUrl + '/api/vps/websites/refresh',
+                        method: 'POST',
+                        headers: {'Authorization': 'Bearer ' + authToken}
+                    });
+                })
                 .then(() => {
                     DevExpress.ui.notify("All data refreshed successfully!", "success", 2000);
+                    location.reload(); // Odśwież stronę żeby pokazać nowe dane
                 })
-                .fail(() => {
-                    DevExpress.ui.notify("Error refreshing data", "error", 2000);
+                .fail((xhr) => {
+                    console.error("Refresh failed:", xhr);
+                    const msg = xhr.responseJSON?.message || "Error refreshing data";
+                    DevExpress.ui.notify(msg, "error", 3000);
                 });
         }
     </script>

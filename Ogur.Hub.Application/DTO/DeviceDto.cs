@@ -14,6 +14,10 @@ namespace Ogur.Hub.Application.DTO;
 /// <param name="Hwid">Hardware ID.</param>
 /// <param name="DeviceGuid">Device GUID.</param>
 /// <param name="DeviceName">Device name.</param>
+/// <param name="Description">Device description.</param>
+/// <param name="PrimaryUserId">Primary user ID.</param>
+/// <param name="PrimaryUserEmail">Primary user email.</param>
+/// /// <param name="PrimaryUserEmail">Primary user login.</param>
 /// <param name="Status">Device status.</param>
 /// <param name="LastIpAddress">Last known IP address.</param>
 /// <param name="RegisteredAt">Registration timestamp.</param>
@@ -28,6 +32,10 @@ public sealed record DeviceDto(
     string Hwid,
     string DeviceGuid,
     string DeviceName,
+    string? Description,
+    int? PrimaryUserId,
+    string? PrimaryUserEmail,
+    string? PrimaryUser,
     DeviceStatus Status,
     string? LastIpAddress,
     DateTime RegisteredAt,

@@ -23,14 +23,14 @@
 <!-- Stats Cards -->
 <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-primary text-white">
+        <div class="card stat-card border-start border-primary border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Total Licenses</h6>
-                        <h2 class="card-title mb-0">@Model.Licenses.Count</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Licenses</h6>
+                        <h2 class="card-title mb-0 text-primary">@Model.Licenses.Count</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-primary opacity-50">
                         <i class="dx-icon-key" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -39,14 +39,14 @@
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-success text-white">
+        <div class="card stat-card border-start border-success border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Active Licenses</h6>
-                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 1)</h2> <!-- Active -->
+                        <h6 class="card-subtitle mb-2 text-muted">Active Licenses</h6>
+                        <h2 class="card-title mb-0 text-success">@Model.Licenses.Count(l => l.Status == LicenseStatus.Active)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-success opacity-50">
                         <i class="dx-icon-check" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -55,14 +55,14 @@
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-danger text-white">
+        <div class="card stat-card border-start border-danger border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Expired Licenses</h6>
-                        <h2 class="card-title mb-0">@Model.Licenses.Count(l => l.Status == 2)</h2> <!-- Expired -->
+                        <h6 class="card-subtitle mb-2 text-muted">Expired Licenses</h6>
+                        <h2 class="card-title mb-0 text-danger">@Model.Licenses.Count(l => l.Status == LicenseStatus.Expired)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-danger opacity-50">
                         <i class="dx-icon-close" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -71,14 +71,14 @@
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-warning text-dark">
+        <div class="card stat-card border-start border-warning border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Devices Registered</h6>
-                        <h2 class="card-title mb-0">@Model.Licenses.Sum(l => l.RegisteredDevices)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Devices Registered</h6>
+                        <h2 class="card-title mb-0 text-warning">@Model.Licenses.Sum(l => l.RegisteredDevices)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-warning opacity-50">
                         <i class="dx-icon-runner" style="font-size: 48px;"></i>
                     </div>
                 </div>

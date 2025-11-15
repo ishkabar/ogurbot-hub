@@ -37,6 +37,7 @@ public sealed class GetDevicesQueryHandler : IRequestHandler<GetDevicesQuery, Li
     {
         var query = _context.Devices
             .Include(d => d.License)
+            .Include(d => d.PrimaryUser)
             .Include(d => d.Sessions.Where(s => s.DisconnectedAt == null))
             .AsQueryable();
 
@@ -45,28 +46,31 @@ public sealed class GetDevicesQueryHandler : IRequestHandler<GetDevicesQuery, Li
             query = query.Where(d => d.LicenseId == request.LicenseId.Value);
         }
 
-        var devices = await query
-            .Select(d => new DeviceDto(
+        var devices = await query.ToListAsync(cancellationToken);
+
+        return devices.Select(d =>
+        {
+            var activeSession = d.Sessions.FirstOrDefault(s => s.DisconnectedAt == null);
+        
+            return new DeviceDto(
                 d.Id,
                 d.LicenseId,
                 d.Fingerprint.Hwid,
                 d.Fingerprint.DeviceGuid.ToString(),
                 d.DeviceName ?? string.Empty,
+                d.Description,
+                d.PrimaryUserId,
+                d.PrimaryUser?.Email,
+                d.PrimaryUser?.Username,
                 d.Status,
                 d.LastIpAddress,
                 d.RegisteredAt,
                 d.LastSeenAt ?? d.RegisteredAt,
                 null,
                 null,
-                d.Sessions.FirstOrDefault(s => s.DisconnectedAt == null) != null 
-                    ? d.Sessions.First(s => s.DisconnectedAt == null).ConnectionId 
-                    : null,
-                d.Sessions.FirstOrDefault(s => s.DisconnectedAt == null) != null 
-                    ? d.Sessions.First(s => s.DisconnectedAt == null).ConnectedAt 
-                    : (DateTime?)null
-            ))
-            .ToListAsync(cancellationToken);
-
-        return devices;
+                activeSession?.ConnectionId,
+                activeSession?.ConnectedAt
+            );
+        }).ToList();
     }
 }

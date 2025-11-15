@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<CreateApplicationCommandHandler>();
         services.AddScoped<UpdateApplicationCommandHandler>();
         services.AddScoped<BlockDeviceCommandHandler>();
+        services.AddScoped<UnblockDeviceCommandHandler>();
         services.AddScoped<SendDeviceCommandCommandHandler>();
         services.AddScoped<CreateLicenseCommandHandler>();
         services.AddScoped<RevokeLicenseCommandHandler>();
@@ -58,6 +59,9 @@ public static class DependencyInjection
         services.AddScoped<ReceiveTelemetryCommandHandler>();
         services.AddScoped<CreateUserCommandHandler>();
         services.AddScoped<UpdateUserCommandHandler>();
+        services.AddScoped<UpdateDeviceCommandHandler>();
+        services.AddScoped<AssignUserToDeviceCommandHandler>();
+        services.AddScoped<RemoveUserFromDeviceCommandHandler>();
 
         return services;
     }

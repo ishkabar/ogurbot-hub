@@ -1,4 +1,5 @@
 ﻿using Ogur.Hub.Web.Models.ViewModels.Base;
+using Ogur.Hub.Application.DTO;
 
 namespace Ogur.Hub.Web.Models.ViewModels;
 
@@ -10,7 +11,7 @@ public sealed class LicensesViewModel : BasePageViewModel
     /// <summary>
     /// List of licenses
     /// </summary>
-    public List<Services.LicenseDto> Licenses { get; set; } = new();
+    public List<LicenseDto> Licenses { get; set; } = new();
 
     /// <summary>
     /// Optional application ID filter

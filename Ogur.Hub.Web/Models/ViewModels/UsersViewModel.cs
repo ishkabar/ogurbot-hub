@@ -4,6 +4,7 @@
 
 using Ogur.Hub.Web.Models.ViewModels.Base;
 using Ogur.Hub.Web.Services;
+using Ogur.Hub.Application.DTO;
 
 namespace Ogur.Hub.Web.Models.ViewModels;
 

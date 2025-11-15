@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Ogur.Hub.Web.Infrastructure;
 using Ogur.Hub.Web.Models.ViewModels;
 using Ogur.Hub.Web.Services;
+using Ogur.Hub.Application.DTO;
+
 
 namespace Ogur.Hub.Web.Controllers;
 
@@ -15,16 +17,19 @@ namespace Ogur.Hub.Web.Controllers;
 public sealed class DevicesController : BaseController
 {
     private readonly IHubApiClient _hubApiClient;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<DevicesController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the DevicesController
     /// </summary>
     /// <param name="hubApiClient">Hub API client for backend communication</param>
+    /// <param name="configuration">Configuration instance</param>
     /// <param name="logger">Logger instance</param>
-    public DevicesController(IHubApiClient hubApiClient, ILogger<DevicesController> logger)
+    public DevicesController(IHubApiClient hubApiClient, IConfiguration configuration, ILogger<DevicesController> logger)
     {
         _hubApiClient = hubApiClient;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -57,6 +62,7 @@ public sealed class DevicesController : BaseController
                 LicenseId = licenseId
             };
             
+            ViewBag.ApiBaseUrl = _configuration["ApiSettings:BaseUrl"];
             return View(viewModel);
         }
         catch (Exception ex)
@@ -74,6 +80,7 @@ public sealed class DevicesController : BaseController
                 LicenseId = licenseId
             };
             
+            ViewBag.ApiBaseUrl = _configuration["ApiSettings:BaseUrl"];
             return View(viewModel);
         }
     }

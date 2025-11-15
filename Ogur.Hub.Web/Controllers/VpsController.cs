@@ -2,10 +2,14 @@
 // Project: Hub.Web
 // Namespace: Ogur.Hub.Web.Controllers
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Ogur.Hub.Web.Infrastructure;
 using Ogur.Hub.Web.Models.ViewModels;
 using Ogur.Hub.Web.Services;
+using Ogur.Hub.Application.DTO;
+
+
 
 namespace Ogur.Hub.Web.Controllers;
 
@@ -17,6 +21,12 @@ public sealed class VpsController : BaseController
     private readonly IHubApiClient _hubApiClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<VpsController> _logger;
+    
+    private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
 
     /// <summary>
     /// Initializes a new instance of the VpsController
@@ -63,7 +73,14 @@ public sealed class VpsController : BaseController
             };
 
             ViewBag.JwtToken = AuthToken;
-
+            ViewBag.VpsDataJson = JsonSerializer.Serialize(new
+            {
+                Containers = containers,
+                Websites = websites,
+                CurrentResources = currentResources,
+                ApiBaseUrl = _configuration["ApiSettings:BaseUrl"]
+            }, _jsonOptions);
+            
             return View(viewModel);
         }
         catch (Exception ex)

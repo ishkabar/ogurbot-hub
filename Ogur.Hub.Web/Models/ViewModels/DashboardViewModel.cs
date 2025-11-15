@@ -1,4 +1,5 @@
 ﻿using Ogur.Hub.Web.Models.ViewModels.Base;
+using Ogur.Hub.Application.DTO;
 
 namespace Ogur.Hub.Web.Models.ViewModels;
 
@@ -11,35 +12,4 @@ public sealed class DashboardViewModel : BasePageViewModel
     /// Dashboard statistics
     /// </summary>
     public DashboardStatsDto Stats { get; init; } = new();
-}
-
-/// <summary>
-/// Dashboard statistics data transfer object
-/// </summary>
-public sealed class DashboardStatsDto
-{
-    /// <summary>
-    /// Total number of applications
-    /// </summary>
-    public int TotalApplications { get; init; }
-    
-    /// <summary>
-    /// Number of active licenses
-    /// </summary>
-    public int ActiveLicenses { get; init; }
-    
-    /// <summary>
-    /// Number of currently connected devices
-    /// </summary>
-    public int ConnectedDevices { get; init; }
-    
-    /// <summary>
-    /// Number of commands sent today
-    /// </summary>
-    public int CommandsToday { get; init; }
-    public int TotalUsers { get; init; }
-    public int TotalDevices { get; init; }
-    public int ExpiredLicenses { get; init; }
-    public int RevokedLicenses { get; init; }
-    
 }

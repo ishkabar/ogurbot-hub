@@ -6,6 +6,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Ogur.Hub.Web.Models.ViewModels;
+using Ogur.Hub.Api.Models.Responses;
+using Ogur.Hub.Application.DTO;
+using Ogur.Hub.Api.Models.Requests;
+
 
 namespace Ogur.Hub.Web.Services;
 

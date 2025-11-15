@@ -1,6 +1,6 @@
 @model DevicesViewModel
 @{
-ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Title;
 }
 
 <!-- Page Header -->
@@ -14,14 +14,14 @@ ViewData["Title"] = Model.Title;
 <!-- Stats Cards -->
 <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-primary text-white">
+        <div class="card stat-card border-start border-primary border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Total Devices</h6>
-                        <h2 class="card-title mb-0">@Model.Devices.Count</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Devices</h6>
+                        <h2 class="card-title mb-0 text-primary">@Model.Devices.Count</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-primary opacity-50">
                         <i class="dx-icon-runner" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -30,14 +30,14 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-success text-white">
+        <div class="card stat-card border-start border-success border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Online Devices</h6>
-                        <h2 class="card-title mb-0">@Model.Devices.Count(d => d.Status == 1)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Online Devices</h6>
+                        <h2 class="card-title mb-0 text-success">@Model.Devices.Count(d => d.Status == DeviceStatus.Online)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-success opacity-50">
                         <i class="dx-icon-check" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -46,14 +46,14 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-warning text-dark">
+        <div class="card stat-card border-start border-warning border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Offline Devices</h6>
-                        <h2 class="card-title mb-0">@Model.Devices.Count(d => d.Status == 2)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Offline Devices</h6>
+                        <h2 class="card-title mb-0 text-warning">@Model.Devices.Count(d => d.Status == DeviceStatus.Offline)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-warning opacity-50">
                         <i class="dx-icon-clock" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -62,14 +62,14 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-danger text-white">
+        <div class="card stat-card border-start border-danger border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Blocked Devices</h6>
-                        <h2 class="card-title mb-0">@Model.Devices.Count(d => d.Status == 3)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Blocked Devices</h6>
+                        <h2 class="card-title mb-0 text-danger">@Model.Devices.Count(d => d.Status == DeviceStatus.Blocked)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-danger opacity-50">
                         <i class="dx-icon-close" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -79,14 +79,14 @@ ViewData["Title"] = Model.Title;
 </div>
 
 <!-- Devices Grid -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
+<div class="row" style="height: calc(100vh - 400px); min-height: 500px;">
+    <div class="col-12 h-100">
+        <div class="card h-100 d-flex flex-column">
             <div class="card-header">
                 <h5 class="mb-0">All Devices</h5>
             </div>
-            <div class="card-body">
-                <div id="devicesGrid"></div>
+            <div class="card-body flex-grow-1 overflow-hidden p-0">
+                <div id="devicesGrid" class="h-100 w-100"></div>
             </div>
         </div>
     </div>
@@ -95,252 +95,509 @@ ViewData["Title"] = Model.Title;
 <!-- Details Popup -->
 <div id="detailsPopup"></div>
 
+<!-- Edit Popup -->
+<div id="editPopup"></div>
+
 <!-- Block Popup -->
 <div id="blockPopup"></div>
 
+<!-- Ulock Popup -->
+<div id="unblockPopup"></div>
+
+
 @section Scripts {
-<script>
-    let detailsPopup;
-    let blockPopup;
-    let devicesGrid;
-    let pendingDetailsData = null;
-    let pendingBlockData = null;
-    const devices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Devices));
+    <script>
+        const apiBaseUrl = '@ViewBag.ApiBaseUrl';
+        const authToken = '@Context.Session.GetString("AuthToken")';
+        const devices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Devices));
 
-    $(function() {
-        console.log("Devices loaded:", devices.length);
+        let detailsPopup;
+        let editPopup;
+        let blockPopup;
+        let unblockPopup;
+        let devicesGrid;
+        let pendingDetailsData = null;
+        let pendingEditData = null;
+        let pendingBlockData = null;
+        let pendingUnblockData = null;
 
-        detailsPopup = $("#detailsPopup").dxPopup({
-            width: 900,
-            height: "auto",
-            maxHeight: "90vh",
-            showTitle: true,
-            title: "Device Details",
-            showCloseButton: true,
-            contentTemplate: function() {
-                return $("<div>").attr("id", "detailsContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingDetailsData) {
-                    renderDetails(pendingDetailsData);
-                    pendingDetailsData = null;
-                }
-            }
-        }).dxPopup("instance");
+        $(function () {
+            console.log("Devices loaded:", devices.length);
 
-        blockPopup = $("#blockPopup").dxPopup({
-            width: 500,
-            height: "auto",
-            showTitle: true,
-            title: "Block Device",
-            showCloseButton: true,
-            contentTemplate: function() {
-                return $("<div>").attr("id", "blockContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingBlockData) {
-                    renderBlock(pendingBlockData);
-                    pendingBlockData = null;
-                }
-            }
-        }).dxPopup("instance");
 
-        setTimeout(function() {
-            devicesGrid = $("#devicesGrid").dxDataGrid({
-                dataSource: devices,
-                showBorders: true,
-                showRowLines: true,
-                rowAlternationEnabled: true,
-                hoverStateEnabled: true,
-                columnAutoWidth: true,
-                noDataText: "No devices found",
-                filterRow: { visible: true },
-                headerFilter: { visible: true },
-                searchPanel: { visible: true, width: 240, placeholder: "Search devices..." },
-                paging: { pageSize: 15 },
-                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
-                export: { enabled: true, fileName: "devices" },
-                columns: [
-                    { dataField: "DeviceName", caption: "Device Name", width: 200 },
-                    {
-                        dataField: "Hwid",
-                        caption: "HWID",
-                        width: 150,
-                        cellTemplate: function(container, options) {
-                            const displayValue = options.value ? options.value.substring(0, 16) + "..." : "N/A";
-                            $("<code>").text(displayValue).appendTo(container);
-                        }
-                    },
-                    { dataField: "LastIpAddress", caption: "IP Address", width: 130 },
-                    { dataField: "RegisteredAt", caption: "Registered", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    { dataField: "LastSeenAt", caption: "Last Seen", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 150 },
-                    {
-                        dataField: "Status",
-                        caption: "Status",
-                        width: 110,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            let badgeClass = "bg-secondary";
-                            let text = "Unknown";
-
-                            if (options.value === 1) {
-                                badgeClass = "bg-success";
-                                text = "Online";
-                            } else if (options.value === 2) {
-                                badgeClass = "bg-warning";
-                                text = "Offline";
-                            } else if (options.value === 3) {
-                                badgeClass = "bg-danger";
-                                text = "Blocked";
-                            } else if (options.value === 4) {
-                                badgeClass = "bg-warning";
-                                text = "Warning";
-                            }
-
-                            $("<span>")
-                                .addClass("badge " + badgeClass)
-                                .text(text)
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "ConnectionId",
-                        caption: "Connection",
-                        width: 110,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const badgeClass = options.value ? "badge bg-success" : "badge bg-secondary";
-                            const text = options.value ? "Online" : "Offline";
-                            $("<span>").addClass(badgeClass).text(text).appendTo(container);
-                        }
-                    },
-                    {
-                        type: "buttons",
-                        width: 120,
-                        buttons: [
-                            {
-                                hint: "View Details",
-                                icon: "info",
-                                onClick: function(e) {
-                                    showDetails(e.row.data);
-                                }
-                            },
-                            {
-                                hint: "Block Device",
-                                icon: "clear",
-                                visible: function(e) {
-                                    return e.row.data.Status !== 3;
-                                },
-                                onClick: function(e) {
-                                    showBlock(e.row.data);
-                                }
-                            }
-                        ]
+            detailsPopup = $("#detailsPopup").dxPopup({
+                width: 900,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "Device Details",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "detailsContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingDetailsData) {
+                        renderDetails(pendingDetailsData);
+                        pendingDetailsData = null;
                     }
-                ],
-                onContentReady: function() {
-                    console.log("Grid rendered with " + devices.length + " items");
                 }
-            }).dxDataGrid("instance");
-        }, 200);
-    });
+            }).dxPopup("instance");
 
-    function showDetails(device) {
-        pendingDetailsData = device;
-        detailsPopup.option("title", "Device Details: " + device.DeviceName);
-        detailsPopup.show();
-    }
+            editPopup = $("#editPopup").dxPopup({
+                width: 600,
+                height: "auto",
+                showTitle: true,
+                title: "Edit Device",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "editContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingEditData) {
+                        renderEdit(pendingEditData);
+                        pendingEditData = null;
+                    }
+                }
+            }).dxPopup("instance");
 
-    function renderDetails(device) {
-        const registeredDate = new Date(device.RegisteredAt).toLocaleDateString('pl-PL');
-        const lastSeenDate = new Date(device.LastSeenAt).toLocaleString('pl-PL');
+            blockPopup = $("#blockPopup").dxPopup({
+                width: 500,
+                height: "auto",
+                showTitle: true,
+                title: "Block Device",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "blockContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingBlockData) {
+                        renderBlock(pendingBlockData);
+                        pendingBlockData = null;
+                    }
+                }
+            }).dxPopup("instance");
 
-        let statusBadge = "bg-secondary";
-        let statusText = "Unknown";
-        if (device.Status === 1) {
-            statusBadge = "bg-success";
-            statusText = "Online";
-        } else if (device.Status === 2) {
-            statusBadge = "bg-warning";
-            statusText = "Offline";
-        } else if (device.Status === 3) {
-            statusBadge = "bg-danger";
-            statusText = "Blocked";
-        } else if (device.Status === 4) {
-            statusBadge = "bg-warning";
-            statusText = "Warning";
+
+            unblockPopup = $("#unblockPopup").dxPopup({
+                width: 500,
+                height: "auto",
+                showTitle: true,
+                title: "Unblock Device",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "unblockContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingUnblockData) {
+                        renderUnblock(pendingUnblockData);
+                        pendingUnblockData = null;
+                    }
+                }
+            }).dxPopup("instance");
+
+            setTimeout(function () {
+                devicesGrid = $("#devicesGrid").dxDataGrid({
+                    dataSource: devices,
+                    height: "100%",
+                    showBorders: true,
+                    showRowLines: true,
+                    rowAlternationEnabled: true,
+                    hoverStateEnabled: true,
+                    columnAutoWidth: true,
+                    allowColumnReordering: true,
+                    allowColumnResizing: true,
+                    columnResizingMode: "widget",
+                    noDataText: "No devices found",
+                    filterRow: {visible: true},
+                    headerFilter: {visible: true},
+                    searchPanel: {visible: true, width: 240, placeholder: "Search devices..."},
+                    paging: {pageSize: 15},
+                    pager: {visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50]},
+                    export: {enabled: true, fileName: "devices"},
+                    columns: [
+                        {dataField: "DeviceName", caption: "Device Name", width: 200},
+                        {dataField: "Description", caption: "Description", width: 200},
+                        {dataField: "PrimaryUser", caption: "Primary User", width: 180},
+                        {
+                            dataField: "Hwid",
+                            caption: "HWID",
+                            width: 150,
+                            cellTemplate: function (container, options) {
+                                const displayValue = options.value ? options.value.substring(0, 16) + "..." : "N/A";
+                                $("<code>").text(displayValue).appendTo(container);
+                            }
+                        },
+                        {dataField: "LastIpAddress", caption: "IP Address", width: 130},
+                        {
+                            dataField: "RegisteredAt",
+                            caption: "Registered",
+                            dataType: "date",
+                            format: "dd/MM/yyyy",
+                            width: 110
+                        },
+                        {
+                            dataField: "LastSeenAt",
+                            caption: "Last Seen",
+                            dataType: "datetime",
+                            format: "dd/MM/yyyy HH:mm",
+                            width: 150
+                        },
+                        {
+                            dataField: "Status",
+                            caption: "Status",
+                            width: 110,
+                            alignment: "center",
+                            cellTemplate: function (container, options) {
+                                let badgeClass = "bg-secondary";
+                                let text = "Unknown";
+
+                                if (options.value === 1) {
+                                    badgeClass = "bg-success";
+                                    text = "Online";
+                                } else if (options.value === 2) {
+                                    badgeClass = "bg-warning";
+                                    text = "Offline";
+                                } else if (options.value === 3) {
+                                    badgeClass = "bg-danger";
+                                    text = "Blocked";
+                                } else if (options.value === 4) {
+                                    badgeClass = "bg-warning";
+                                    text = "Warning";
+                                }
+
+                                $("<span>")
+                                    .addClass("badge " + badgeClass)
+                                    .text(text)
+                                    .appendTo(container);
+                            }
+                        },
+                        {
+                            dataField: "ConnectionId",
+                            caption: "Connection",
+                            width: 110,
+                            alignment: "center",
+                            cellTemplate: function (container, options) {
+                                const badgeClass = options.value ? "badge bg-success" : "badge bg-secondary";
+                                const text = options.value ? "Online" : "Offline";
+                                $("<span>").addClass(badgeClass).text(text).appendTo(container);
+                            }
+                        },
+                        {
+                            type: "buttons",
+                            width: 150,
+                            buttons: [
+                                {
+                                    hint: "View Details",
+                                    icon: "info",
+                                    onClick: function (e) {
+                                        showDetails(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Edit Device",
+                                    icon: "edit",
+                                    onClick: function (e) {
+                                        showEdit(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Block Device",
+                                    icon: "clear",
+                                    visible: function (e) {
+                                        return e.row.data.Status !== 3;
+                                    },
+                                    onClick: function (e) {
+                                        showBlock(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Unblock Device",
+                                    icon: "check",
+                                    visible: function (e) {
+                                        return e.row.data.Status === 3;
+                                    },
+                                    onClick: function (e) {
+                                        showUnblock(e.row.data);
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    onContentReady: function () {
+                        console.log("Grid rendered with " + devices.length + " items");
+                    }
+
+                }).dxDataGrid("instance");
+            }, 200);
+        });
+
+        function showDetails(device) {
+            pendingDetailsData = device;
+            detailsPopup.option("title", "Device Details: " + device.DeviceName);
+            detailsPopup.show();
         }
 
-        const content = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="mb-3"><i class="dx-icon-runner"></i> Device Information</h6>
-                        <table class="table table-sm table-borderless">
-                            <tr><th width="40%">Device Name:</th><td>${device.DeviceName}</td></tr>
-                            <tr><th>HWID:</th><td><code>${device.Hwid}</code></td></tr>
-                            <tr><th>Status:</th><td><span class="badge ${statusBadge}">${statusText}</span></td></tr>
-                            <tr><th>IP Address:</th><td>${device.LastIpAddress || 'N/A'}</td></tr>
-                            <tr><th>Registered:</th><td>${registeredDate}</td></tr>
-                            <tr><th>Last Seen:</th><td>${lastSeenDate}</td></tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="mb-3"><i class="dx-icon-info"></i> Connection</h6>
-                        <p><strong>Status:</strong> ${device.ConnectionId ? '<span class="badge bg-success">Online</span>' : '<span class="badge bg-secondary">Offline</span>'}</p>
-                        ${device.ConnectionId ? `<p><strong>Connection ID:</strong> <code>${device.ConnectionId}</code></p>` : ''}
-                        <hr>
-                        ${device.Status !== 3 ? `
-                        <button class="btn btn-danger btn-sm" onclick="closeDetailsAndBlock(${device.Id})">
-                            <i class="dx-icon-clear"></i> Block Device
-                        </button>` : ''}
-                    </div>
-                </div>
-            `;
 
-        $("#detailsContent").html(content);
-    }
+        function renderDetails(device) {
+            const registeredDate = new Date(device.RegisteredAt).toLocaleDateString('pl-PL');  // ← PascalCase
+            const lastSeenDate = new Date(device.LastSeenAt).toLocaleString('pl-PL');  // ← PascalCase
 
-    function showBlock(device) {
-        pendingBlockData = device;
-        blockPopup.option("title", "Block Device");
-        blockPopup.show();
-    }
+            let statusBadge = "bg-secondary";
+            let statusText = "Unknown";
+            if (device.Status === 1) {  // ← PascalCase
+                statusBadge = "bg-success";
+                statusText = "Online";
+            } else if (device.Status === 2) {
+                statusBadge = "bg-warning";
+                statusText = "Offline";
+            } else if (device.Status === 3) {
+                statusBadge = "bg-danger";
+                statusText = "Blocked";
+            } else if (device.Status === 4) {
+                statusBadge = "bg-warning";
+                statusText = "Warning";
+            }
 
-    function renderBlock(device) {
-        const content = `
-                <div class="alert alert-warning">
-                    <i class="dx-icon-warning"></i> <strong>Warning!</strong> This will prevent the device from accessing the application.
-                </div>
-                <p>Are you sure you want to block this device?</p>
-                <table class="table table-sm">
-                    <tr><th>Device Name:</th><td>${device.DeviceName}</td></tr>
+            const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-3"><i class="dx-icon-runner"></i> Device Information</h6>
+                <table class="table table-sm table-borderless">
+                    <tr><th width="40%">Device Name:</th><td>${device.DeviceName}</td></tr>
+                    <tr><th>Description:</th><td>${device.Description || 'N/A'}</td></tr>
+                    <tr><th>Primary User:</th><td>${device.PrimaryUser || 'N/A'}</td></tr>
                     <tr><th>HWID:</th><td><code>${device.Hwid}</code></td></tr>
+                    <tr><th>Status:</th><td><span class="badge ${statusBadge}">${statusText}</span></td></tr>
                     <tr><th>IP Address:</th><td>${device.LastIpAddress || 'N/A'}</td></tr>
+                    <tr><th>Registered:</th><td>${registeredDate}</td></tr>
+                    <tr><th>Last Seen:</th><td>${lastSeenDate}</td></tr>
                 </table>
-                <div class="d-flex gap-2 mt-3">
-                    <button type="button" class="btn btn-danger" onclick="confirmBlock(${device.Id})">
-                        <i class="dx-icon-clear"></i> Yes, Block Device
+            </div>
+            <div class="col-md-6">
+                <h6 class="mb-3"><i class="dx-icon-info"></i> Connection</h6>
+                <p><strong>Status:</strong> ${device.ConnectionId ? '<span class="badge bg-success">Online</span>' : '<span class="badge bg-secondary">Offline</span>'}</p>
+                ${device.ConnectionId ? `<p><strong>Connection ID:</strong> <code>${device.ConnectionId}</code></p>` : ''}
+                <hr>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="closeDetailsAndEdit(${device.Id})">
+                        <i class="dx-icon-edit"></i> Edit Device
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="blockPopup.hide()">
-                        Cancel
-                    </button>
-                </div>
+                ${device.Status !== 3 ? `
+                <button class="btn btn-danger btn-sm" onclick="closeDetailsAndBlock(${device.Id})">
+                    <i class="dx-icon-clear"></i> Block Device
+                </button>` : ''}
+            </div>
+        </div>
+        </div>
+    `;
+
+            $("#detailsContent").html(content);
+        }
+
+
+        function showEdit(device) {
+            pendingEditData = device;
+            editPopup.option("title", "Edit Device: " + device.DeviceName);  // ← PascalCase
+            editPopup.show();
+        }
+
+        function renderEdit(device) {
+            $.ajax({
+                url: apiBaseUrl + '/api/users',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                success: function(response) {
+                    const users = response.data || response;
+
+                    const userOptions = '<option value="">No primary user</option>' +
+                        users.map(u => `<option value="${u.id}" ${device.PrimaryUserId === u.id ? 'selected' : ''}>${u.username} (${u.email})</option>`).join('');
+
+                    const content = `
+                <form id="editDeviceForm">
+                    <div class="mb-3">
+                        <label class="form-label">Device Name</label>
+                        <input type="text" class="form-control" id="editDeviceName" value="${device.DeviceName || ''}" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="editDescription" rows="3">${device.Description || ''}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Primary User</label>
+                        <select class="form-select" id="editPrimaryUserId">
+                            ${userOptions}
+                        </select>
+                        <small class="text-muted">Select primary user for this device</small>
+                    </div>
+                    <hr>
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary" onclick="editPopup.hide()">
+                            Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="saveDevice(${device.Id})">
+                            <i class="dx-icon-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
             `;
 
-        $("#blockContent").html(content);
-    }
-
-    function closeDetailsAndBlock(deviceId) {
-        detailsPopup.hide();
-        const device = devices.find(d => d.Id === deviceId);
-        if (device) {
-            showBlock(device);
+                    $("#editContent").html(content);
+                }
+            });
         }
-    }
 
-    function confirmBlock(deviceId) {
-        DevExpress.ui.notify("Block functionality not yet implemented", "info", 2000);
-        blockPopup.hide();
-    }
-</script>
+
+        function showBlock(device) {
+            pendingBlockData = device;
+            blockPopup.option("title", "Block Device");
+            blockPopup.show();
+        }
+
+        function showUnblock(device) {
+            pendingUnblockData = device;
+            unblockPopup.option("title", "Unblock Device: " + device.DeviceName);
+            unblockPopup.show();
+        }
+
+        function renderBlock(device) {
+            const content = `
+        <div class="alert alert-warning">
+            <i class="dx-icon-warning"></i> <strong>Warning!</strong> This will prevent the device from accessing the application.
+        </div>
+        <p>Are you sure you want to block this device?</p>
+        <table class="table table-sm">
+            <tr><th>Device Name:</th><td>${device.DeviceName}</td></tr>
+            <tr><th>Description:</th><td>${device.Description || 'N/A'}</td></tr>
+            <tr><th>Primary User:</th><td>${device.PrimaryUser || 'N/A'}</td></tr>
+            <tr><th>HWID:</th><td><code>${device.Hwid}</code></td></tr>
+            <tr><th>IP Address:</th><td>${device.LastIpAddress || 'N/A'}</td></tr>
+        </table>
+        <div class="d-flex gap-2 mt-3">
+            <button type="button" class="btn btn-danger" onclick="confirmBlock(${device.Id})">
+                <i class="dx-icon-clear"></i> Yes, Block Device
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="blockPopup.hide()">
+                Cancel
+            </button>
+        </div>
+    `;
+
+            $("#blockContent").html(content);
+        }
+
+
+        function renderUnblock(device) {
+            const content = `
+        <div class="alert alert-info">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+              <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z"/>
+              <circle cx="8" cy="4.5" r="1"/>
+            </svg>
+            <strong>Unblock Device</strong><br>
+            This will allow the device to access the application again.
+        </div>
+        <p>Are you sure you want to unblock this device?</p>
+        <table class="table table-sm">
+            <tr><th width="40%">Device Name:</th><td>${device.DeviceName}</td></tr>
+            <tr><th>Description:</th><td>${device.Description || 'N/A'}</td></tr>
+            <tr><th>Primary User:</th><td>${device.PrimaryUser || 'N/A'}</td></tr>
+            <tr><th>HWID:</th><td><code>${device.Hwid}</code></td></tr>
+            <tr><th>IP Address:</th><td>${device.LastIpAddress || 'N/A'}</td></tr>
+        </table>
+        <div class="d-flex gap-2 mt-3">
+            <button type="button" class="btn btn-success" onclick="confirmUnblock(${device.Id})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" viewBox="0 0 16 16">
+                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/>
+                </svg>Yes, Unblock Device
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="unblockPopup.hide()">
+                Cancel
+            </button>
+        </div>
+    `;
+
+            $("#unblockContent").html(content);
+        }
+
+        function confirmUnblock(deviceId) {
+            $.ajax({
+                url: apiBaseUrl + '/api/devices/' + deviceId + '/unblock',
+                method: 'POST',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                success: function () {
+                    DevExpress.ui.notify("Device unblocked successfully!", "success", 2000);
+                    unblockPopup.hide();
+                    location.reload();
+                },
+                error: function (xhr) {
+                    console.error("Unblock failed:", xhr);
+                    const msg = xhr.responseJSON?.message || "Failed to unblock device";
+                    DevExpress.ui.notify(msg, "error", 3000);
+                }
+            });
+        }
+
+        function closeDetailsAndEdit(deviceId) {
+            detailsPopup.hide();
+            const device = devices.find(d => d.Id === deviceId);
+            if (device) {
+                showEdit(device);
+            }
+        }
+
+
+        function closeDetailsAndBlock(deviceId) {
+            detailsPopup.hide();
+            const device = devices.find(d => d.Id === deviceId);
+            if (device) {
+                showBlock(device);
+            }
+        }
+
+        function saveDevice(deviceId) {
+            const deviceName = $("#editDeviceName").val();
+            const description = $("#editDescription").val();
+            const primaryUserId = $("#editPrimaryUserId").val();
+
+            $.ajax({
+                url: apiBaseUrl + '/api/devices/' + deviceId,
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                data: JSON.stringify({
+                    deviceName: deviceName,
+                    description: description,
+                    primaryUserId: primaryUserId ? parseInt(primaryUserId) : null
+                }),
+                success: function () {
+                    DevExpress.ui.notify("Device updated successfully!", "success", 2000);
+                    editPopup.hide();
+                    location.reload();
+                },
+                error: function (xhr) {
+                    console.error("Update failed:", xhr);
+                    const msg = xhr.responseJSON?.message || "Failed to update device";
+                    DevExpress.ui.notify(msg, "error", 3000);
+                }
+            });
+        }
+
+        function confirmBlock(deviceId) {
+            $.ajax({
+                url: apiBaseUrl + '/api/devices/' + deviceId + '/block',
+                method: 'POST',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                success: function () {
+                    DevExpress.ui.notify("Device blocked successfully!", "success", 2000);
+                    blockPopup.hide();
+                    location.reload();
+                },
+                error: function (xhr) {
+                    console.error("Block failed:", xhr);
+                    const msg = xhr.responseJSON?.message || "Failed to block device";
+                    DevExpress.ui.notify(msg, "error", 3000);
+                }
+            });
+        }
+    </script>
 }

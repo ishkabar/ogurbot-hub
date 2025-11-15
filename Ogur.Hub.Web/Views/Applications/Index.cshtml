@@ -21,6 +21,7 @@
 </div>
 
 <!-- Stats Cards -->
+
 <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
         <div class="card stat-card border-start border-primary border-4">
@@ -194,8 +195,8 @@
                     hoverStateEnabled: true,
                     columnAutoWidth: true,
                     allowColumnReordering: true,
-        allowColumnResizing: true,
-        columnResizingMode: "widget",
+                    allowColumnResizing: true,
+                    columnResizingMode: "widget",
                     noDataText: "No applications found",
                     filterRow: {visible: true},
                     headerFilter: {visible: true},
@@ -305,7 +306,7 @@
             DevExpress.ui.dialog.confirm(
                 `Are you sure you want to delete application "${appName}"? This action cannot be undone.`,
                 "Delete Application"
-            ).then(function(result) {
+            ).then(function (result) {
                 if (result) {
                     deleteApplication(appId);
                 }
@@ -316,19 +317,19 @@
             $.ajax({
                 url: '/api/applications/' + appId,
                 method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + authToken },
-                success: function() {
+                headers: {'Authorization': 'Bearer ' + authToken},
+                success: function () {
                     DevExpress.ui.notify("Application deleted successfully!", "success", 2000);
                     editPopup.hide();
                     location.reload();
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     console.error("Delete failed:", xhr);
                     DevExpress.ui.notify("Failed to delete application", "error", 3000);
                 }
             });
         }
-        
+
         function renderEdit(app) {
             const content = `
         <form id="editForm">
@@ -369,7 +370,7 @@
     `;
             $("#editContent").html(content);
 
-            $("#editForm").on("submit", function(e) {
+            $("#editForm").on("submit", function (e) {
                 e.preventDefault();
                 submitEdit();
             });
@@ -394,13 +395,13 @@
                 url: '@Url.Action("UpdateApplication", "Applications")',
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ id: $("#editId").val(), data: data }),
-                success: function() {
+                data: JSON.stringify({id: $("#editId").val(), data: data}),
+                success: function () {
                     DevExpress.ui.notify("Application updated!", "success", 2000);
                     editPopup.hide();
                     location.reload();
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     console.error("Update failed:", xhr);
                     DevExpress.ui.notify("Failed to update application", "error", 3000);
                 }

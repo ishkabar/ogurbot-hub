@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Ogur.Hub.Web.Infrastructure;
 using Ogur.Hub.Web.Models.ViewModels;
 using Ogur.Hub.Web.Services;
+using Ogur.Hub.Application.DTO;
+using Ogur.Hub.Api.Models.Requests;
+using Ogur.Hub.Domain.Enums;
+
 
 namespace Ogur.Hub.Web.Controllers;
 
@@ -112,12 +116,14 @@ public sealed class ApplicationsController : BaseController
     [HttpPost]
     public async Task<IActionResult> UpdateApplication([FromBody] UpdateApplicationDto dto)
     {
-        var request = new UpdateApplicationRequest(
-            dto.Data.Name,
-            dto.Data.DisplayName,
-            dto.Data.Description,
-            dto.Data.CurrentVersion,
-            dto.Data.IsActive);
+        var request = new UpdateApplicationRequest
+        {
+            Name = dto.Data.Name,
+            DisplayName = dto.Data.DisplayName,
+            Description = dto.Data.Description,
+            CurrentVersion = dto.Data.CurrentVersion,
+            IsActive = dto.Data.IsActive
+        };
     
         var result = await _hubApiClient.UpdateApplicationAsync(AuthToken!, dto.Id, request);
     
@@ -153,7 +159,7 @@ public sealed class ApplicationsController : BaseController
             ApplicationId = id,
             Application = application,
             LicensesCount = licenses?.Count ?? 0,
-            ActiveLicensesCount = licenses?.Count(l => l.Status == 1) ?? 0,
+            ActiveLicensesCount = licenses?.Count(l => l.Status == LicenseStatus.Active) ?? 0,
             DevicesCount = licenses?.Sum(l => l.RegisteredDevices) ?? 0,
             ConnectedDevicesCount = 0
         };

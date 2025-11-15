@@ -3,6 +3,7 @@
 // Namespace: Ogur.Hub.Web.Models.ViewModels
 
 using Ogur.Hub.Web.Models.ViewModels.Base;
+using Ogur.Hub.Application.DTO;
 
 namespace Ogur.Hub.Web.Models.ViewModels;
 

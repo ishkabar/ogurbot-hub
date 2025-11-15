@@ -9,6 +9,7 @@ using Ogur.Hub.Web.Models;
 using Ogur.Hub.Web.Models.ViewModels;
 using Ogur.Hub.Web.Services;
 using System.Diagnostics;
+using Ogur.Hub.Application.DTO;
 
 namespace Ogur.Hub.Web.Controllers;
 

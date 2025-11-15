@@ -8,6 +8,7 @@ using Ogur.Hub.Api.Models.Responses;
 using Ogur.Hub.Application.Commands.UsersCommands;
 using Ogur.Hub.Application.DTO;
 using Ogur.Hub.Application.Queries.Users;
+using Ogur.Hub.Api.Models.Requests;
 
 
 namespace Ogur.Hub.Api.Controllers;
@@ -44,7 +45,7 @@ public sealed class UsersController : ControllerBase
         _getUsersHandler = getUsersHandler;
         _getUserByIdHandler = getUserByIdHandler;
         _updateUserHandler = updateUserHandler;
-        _createUserHandler = createUserHandler; 
+        _createUserHandler = createUserHandler;
         _logger = logger;
     }
 
@@ -64,70 +65,56 @@ public sealed class UsersController : ControllerBase
 
         return Ok(ApiResponse<IReadOnlyList<UserDto>>.SuccessResponse(result.Value));
     }
-    
+
     /// <summary>
-/// Creates a new user.
-/// </summary>
-/// <param name="request">User creation request.</param>
-/// <param name="ct">Cancellation token.</param>
-/// <returns>Created user details.</returns>
-[HttpPost]
-[Authorize(Roles = "Admin")]
-[ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status201Created)]
-[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-public async Task<IActionResult> Create([FromBody] CreateUserRequest request, CancellationToken ct)
-{
-    _logger.LogInformation("Creating new user {Username}", request.Username);
-
-    if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Email))
+    /// Creates a new user.
+    /// </summary>
+    /// <param name="request">User creation request.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Created user details.</returns>
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Create([FromBody] CreateUserRequest request, CancellationToken ct)
     {
-        return BadRequest(ApiResponse<UserDto>.ErrorResponse("Username and email are required"));
+        _logger.LogInformation("Creating new user {Username}", request.Username);
+
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Email))
+        {
+            return BadRequest(ApiResponse<UserDto>.ErrorResponse("Username and email are required"));
+        }
+
+        var command = new CreateUserCommand(
+            request.Username,
+            request.Email,
+            request.Password,
+            request.IsActive,
+            request.IsAdmin);
+
+        var result = await _createUserHandler.Handle(command, ct);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(ApiResponse<UserDto>.ErrorResponse(result.Error!));
+        }
+
+        var dto = new UserDto(
+            result.Value.UserId,
+            request.Username,
+            request.Email,
+            request.IsActive,
+            request.IsAdmin,
+            0,
+            DateTime.UtcNow,
+            null);
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Value.UserId },
+            ApiResponse<UserDto>.SuccessResponse(dto));
     }
 
-    var command = new CreateUserCommand(
-        request.Username,
-        request.Email, 
-        request.Password,
-        request.IsActive,
-        request.IsAdmin);
-        
-    var result = await _createUserHandler.Handle(command, ct);
-
-    if (!result.IsSuccess)
-    {
-        return BadRequest(ApiResponse<UserDto>.ErrorResponse(result.Error!));
-    }
-
-    var dto = new UserDto(
-        result.Value.UserId,
-        request.Username,
-        request.Email,
-        request.IsActive,
-        request.IsAdmin,
-        0,
-        DateTime.UtcNow,
-        null);
-
-    return CreatedAtAction(nameof(GetById), new { id = result.Value.UserId }, 
-        ApiResponse<UserDto>.SuccessResponse(dto));
-}
-
-/// <summary>
-/// Request model for creating user.
-/// </summary>
-/// <param name="Username">Username.</param>
-/// <param name="Email">Email address.</param>
-/// <param name="Password">Password.</param>
-/// <param name="IsActive">Is user active.</param>
-/// <param name="IsAdmin">Is user admin.</param>
-public record CreateUserRequest(
-    string Username, 
-    string Email, 
-    string Password, 
-    bool IsActive, 
-    bool IsAdmin);
 
     /// <summary>
     /// Gets user by ID.
@@ -186,14 +173,4 @@ public record CreateUserRequest(
 
         return Ok(ApiResponse<object>.SuccessResponse(new { message = "User updated successfully" }));
     }
-    
-    
 }
-
-/// <summary>
-/// Request model for updating user.
-/// </summary>
-/// <param name="Email">Email address.</param>
-/// <param name="IsActive">Is user active.</param>
-/// <param name="IsAdmin">Is user admin.</param>
-public record UpdateUserRequest(string Email, bool IsActive, bool IsAdmin);

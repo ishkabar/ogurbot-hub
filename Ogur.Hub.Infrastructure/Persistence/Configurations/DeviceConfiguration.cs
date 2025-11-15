@@ -1,8 +1,9 @@
-﻿// File: Hub.Infrastructure/Persistence/Configurations/DeviceConfiguration.cs
-// Project: Hub.Infrastructure
-// Namespace: Hub.Infrastructure.Persistence.Configurations
+﻿// File: Ogur.Hub.Infrastructure/Persistence/Configurations/DeviceConfiguration.cs
+// Project: Ogur.Hub.Infrastructure
+// Namespace: Ogur.Hub.Infrastructure.Persistence.Configurations
 
 using Ogur.Hub.Domain.Entities;
+using Ogur.Hub.Domain.ValueObjects;
 using Ogur.Hub.Infrastructure.Persistence.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -28,6 +29,9 @@ public sealed class DeviceConfiguration : IEntityTypeConfiguration<Device>
 
         builder.Property(d => d.DeviceName)
             .HasMaxLength(200);
+            
+            builder.Property(d => d.Description)
+            .HasMaxLength(500);
 
         builder.Property(d => d.Status)
             .IsRequired()
@@ -47,9 +51,21 @@ public sealed class DeviceConfiguration : IEntityTypeConfiguration<Device>
 
         builder.Property(d => d.UpdatedAt)
             .IsRequired();
+            
+            builder.HasOne(d => d.License)
+            .WithMany(l => l.Devices)
+            .HasForeignKey(d => d.LicenseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(d => d.PrimaryUser)
+            .WithMany()
+            .HasForeignKey(d => d.PrimaryUserId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(d => new { d.LicenseId, d.Fingerprint })
             .IsUnique();
+            
+            builder.HasIndex(d => d.PrimaryUserId);
 
         builder.HasMany(d => d.Sessions)
             .WithOne(s => s.Device)
@@ -64,6 +80,11 @@ public sealed class DeviceConfiguration : IEntityTypeConfiguration<Device>
         builder.HasMany(d => d.Commands)
             .WithOne(c => c.Device)
             .HasForeignKey(c => c.DeviceId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+            builder.HasMany(d => d.DeviceUsers)
+            .WithOne(du => du.Device)
+            .HasForeignKey(du => du.DeviceId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -279,10 +279,10 @@ body.dark-mode .dx-datagrid-rowsview .dx-row-alt {
     height: 600px;
 }
 .content-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 56px); /* 56px to wysokość navbara */
-    overflow: hidden;
+    display: block;
+    /*flex-direction: column;
+    height: calc(100vh - 56px);
+    overflow: hidden;*/
 }
 
 .row.flex-grow-1 {
@@ -337,6 +337,71 @@ body.dark-mode .text-dark {
 /* Smooth transitions */
 * {
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* JSCharting Gauge styling */
+.card .jsc-chart-container {
+    background-color: transparent !important;
+}
+
+/* Gauge backgrounds */
+#cpuGauge, #memoryGauge, #diskGauge, #networkGauge {
+    background-color: var(--card-bg) !important;
+}
+
+/* Gauge SVG backgrounds */
+#cpuGauge svg,
+#memoryGauge svg,
+#diskGauge svg,
+#networkGauge svg {
+    background: var(--card-bg) !important;
+}
+
+/* Ukryj TYLKO gradient tła (nie kolorów gauge'a) */
+#cpuGauge svg defs linearGradient[id*="background"],
+#memoryGauge svg defs linearGradient[id*="background"],
+#diskGauge svg defs linearGradient[id*="background"],
+#networkGauge svg defs linearGradient[id*="background"],
+#cpuGauge svg defs radialGradient[id*="background"],
+#memoryGauge svg defs radialGradient[id*="background"],
+#diskGauge svg defs radialGradient[id*="background"],
+#networkGauge svg defs radialGradient[id*="background"] {
+    display: none !important;
+}
+
+/* Gauge text colors */
+[data-bs-theme="dark"] #cpuGauge text,
+[data-bs-theme="dark"] #memoryGauge text,
+[data-bs-theme="dark"] #diskGauge text,
+[data-bs-theme="dark"] #networkGauge text,
+body.dark-mode #cpuGauge text,
+body.dark-mode #memoryGauge text,
+body.dark-mode #diskGauge text,
+body.dark-mode #networkGauge text {
+    fill: var(--text-color) !important;
+}
+
+/* Gauge container cards */
+#gaugeView .card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+/* Gauge subtitle and small text */
+#gaugeView .card-subtitle,
+#gaugeView small {
+    color: var(--text-color);
+}
+
+#cpuLoadGauge,
+#memoryDetailsGauge,
+#diskDetailsGauge,
+#networkTxGauge {
+    color: var(--muted-color) !important;
+}
+
+a[href*="jscharting.com"] {
+    display: none !important;
 }
 
 /* Responsive */

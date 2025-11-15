@@ -29,6 +29,16 @@ public sealed class Device : Entity<int>
     public string? DeviceName { get; private set; }
 
     /// <summary>
+    /// Gets the device description.
+    /// </summary>
+    public string? Description { get; private set; }
+
+    /// <summary>
+    /// Gets the primary user identifier for this device.
+    /// </summary>
+    public int? PrimaryUserId { get; private set; }
+
+    /// <summary>
     /// Gets the current device status.
     /// </summary>
     public DeviceStatus Status { get; private set; }
@@ -54,6 +64,11 @@ public sealed class Device : Entity<int>
     public License License { get; private set; } = null!;
 
     /// <summary>
+    /// Gets the primary user assigned to this device.
+    /// </summary>
+    public User? PrimaryUser { get; private set; }
+
+    /// <summary>
     /// Gets the collection of device sessions.
     /// </summary>
     public ICollection<DeviceSession> Sessions { get; private set; } = new List<DeviceSession>();
@@ -68,7 +83,14 @@ public sealed class Device : Entity<int>
     /// </summary>
     public ICollection<HubCommand> Commands { get; private set; } = new List<HubCommand>();
 
-    private Device() { }
+    /// <summary>
+    /// Gets the collection of device user assignments for multi-user scenarios.
+    /// </summary>
+    public ICollection<DeviceUser> DeviceUsers { get; private set; } = new List<DeviceUser>();
+
+    private Device()
+    {
+    }
 
     /// <summary>
     /// Creates a new device instance.
@@ -76,18 +98,27 @@ public sealed class Device : Entity<int>
     /// <param name="licenseId">License identifier.</param>
     /// <param name="fingerprint">Device fingerprint.</param>
     /// <param name="deviceName">Device name.</param>
+    /// <param name="description">Device description.</param>
+    /// <param name="primaryUserId">Primary user identifier.</param>
     /// <returns>New device instance.</returns>
-    public static Device Create(int licenseId, DeviceFingerprint fingerprint, string? deviceName = null)
+    public static Device Create(
+        int licenseId,
+        DeviceFingerprint fingerprint,
+        string? deviceName = null,
+        string? description = null,
+        int? primaryUserId = null)
     {
         var device = new Device
         {
             LicenseId = licenseId,
             Fingerprint = fingerprint,
             DeviceName = deviceName,
+            Description = description,
+            PrimaryUserId = primaryUserId,
             Status = DeviceStatus.Online,
             RegisteredAt = DateTime.UtcNow
         };
-        
+
         return device;
     }
 
@@ -117,6 +148,20 @@ public sealed class Device : Entity<int>
         Status = DeviceStatus.Blocked;
         UpdateTimestamp();
     }
+    
+    /// <summary>
+    /// Unblocks the device, allowing access again.
+    /// </summary>
+    public void Unblock()
+    {
+        if (Status != DeviceStatus.Blocked)
+        {
+            throw new InvalidOperationException("Cannot unblock a device that is not blocked");
+        }
+
+        Status = DeviceStatus.Offline;
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     /// <summary>
     /// Checks if the device is currently blocked.
@@ -145,6 +190,57 @@ public sealed class Device : Entity<int>
     public void UpdateDeviceName(string? deviceName)
     {
         DeviceName = deviceName;
+        UpdateTimestamp();
+    }
+
+
+    /// <summary>
+    /// Updates the device description.
+    /// </summary>
+    /// <param name="description">New description.</param>
+    public void UpdateDescription(string? description)
+    {
+        Description = description;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Sets the primary user for this device.
+    /// </summary>
+    /// <param name="userId">User identifier.</param>
+    public void SetPrimaryUser(int? userId)
+    {
+        PrimaryUserId = userId;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Assigns an additional user to this device.
+    /// </summary>
+    /// <param name="userId">User identifier.</param>
+    public void AssignUser(int userId)
+    {
+        if (!DeviceUsers.Any(du => du.UserId == userId))
+        {
+            var deviceUser = DeviceUser.Create(Id, userId);
+            DeviceUsers.Add(deviceUser);
+        }
+
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Removes a user assignment from this device.
+    /// </summary>
+    /// <param name="userId">User identifier.</param>
+    public void RemoveUser(int userId)
+    {
+        var deviceUser = DeviceUsers.FirstOrDefault(du => du.UserId == userId);
+        if (deviceUser != null)
+        {
+            DeviceUsers.Remove(deviceUser);
+        }
+
         UpdateTimestamp();
     }
 }
