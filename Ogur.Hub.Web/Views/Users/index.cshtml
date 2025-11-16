@@ -1,6 +1,6 @@
 ﻿@model UsersViewModel
 @{
-ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Title;
 }
 
 <!-- Page Header -->
@@ -11,11 +11,14 @@ ViewData["Title"] = Model.Title;
                 <h2>@Model.Title</h2>
                 <p class="text-muted">@Model.Description</p>
             </div>
-            <div>
-                <button type="button" class="btn btn-primary" onclick="showCreatePopup()">
-                    <i class="dx-icon-plus"></i> New User
-                </button>
-            </div>
+            @if (Model.IsAdmin)
+            {
+                <div>
+                    <button type="button" class="btn btn-primary" onclick="showCreatePopup()">
+                        <i class="dx-icon-plus"></i> New User
+                    </button>
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -23,14 +26,14 @@ ViewData["Title"] = Model.Title;
 <!-- Stats Cards -->
 <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-primary text-white">
+        <div class="card stat-card border-start border-primary border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Total Users</h6>
-                        <h2 class="card-title mb-0">@Model.Users.Count</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Users</h6>
+                        <h2 class="card-title mb-0 text-primary">@Model.Users.Count</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-primary opacity-50">
                         <i class="dx-icon-user" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -39,14 +42,14 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-success text-white">
+        <div class="card stat-card border-start border-success border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Active Users</h6>
-                        <h2 class="card-title mb-0">@Model.Users.Count(u => u.IsActive)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Active Users</h6>
+                        <h2 class="card-title mb-0 text-success">@Model.Users.Count(u => u.IsActive)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-success opacity-50">
                         <i class="dx-icon-check" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -55,14 +58,14 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-warning text-dark">
+        <div class="card stat-card border-start border-warning border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Administrators</h6>
-                        <h2 class="card-title mb-0">@Model.Users.Count(u => u.IsAdmin)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Administrators</h6>
+                        <h2 class="card-title mb-0 text-warning">@Model.Users.Count(u => u.IsAdmin)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-warning opacity-50">
                         <i class="dx-icon-favorites" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -71,14 +74,14 @@ ViewData["Title"] = Model.Title;
     </div>
 
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card stat-card bg-info text-white">
+        <div class="card stat-card border-start border-info border-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-subtitle mb-2">Total Licenses</h6>
-                        <h2 class="card-title mb-0">@Model.Users.Sum(u => u.LicensesCount)</h2>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Licenses</h6>
+                        <h2 class="card-title mb-0 text-info">@Model.Users.Sum(u => u.LicensesCount)</h2>
                     </div>
-                    <div class="stat-icon">
+                    <div class="stat-icon text-info opacity-50">
                         <i class="dx-icon-key" style="font-size: 48px;"></i>
                     </div>
                 </div>
@@ -88,14 +91,14 @@ ViewData["Title"] = Model.Title;
 </div>
 
 <!-- Users Grid -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
+<div class="row" style="height: calc(100vh - 400px); min-height: 500px;">
+    <div class="col-12 h-100">
+        <div class="card h-100 d-flex flex-column">
             <div class="card-header">
                 <h5 class="mb-0">All Users</h5>
             </div>
-            <div class="card-body">
-                <div id="usersGrid"></div>
+            <div class="card-body flex-grow-1 overflow-hidden p-0">
+                <div id="usersGrid" class="h-100 w-100"></div>
             </div>
         </div>
     </div>
@@ -104,212 +107,554 @@ ViewData["Title"] = Model.Title;
 <!-- Create Popup -->
 <div id="createPopup"></div>
 
+<!-- Details Popup -->
+<div id="detailsPopup"></div>
+
+<!-- Edit Popup -->
+<div id="editPopup"></div>
+
+<!-- Block Popup -->
+<div id="blockPopup"></div>
+
+<!-- Unblock Popup -->
+<div id="unblockPopup"></div>
+
+<!-- Delete Popup -->
+<div id="deletePopup"></div>
+
 @section Scripts {
-<script>
-    let createPopup;
-    let usersGrid;
-    let pendingCreateData = null;
-    const users = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Users));
+    <script>
+        const apiBaseUrl = '@ViewBag.ApiBaseUrl';
+        const authToken = '@Context.Session.GetString("AuthToken")';
+        const users = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Users));
+        const isAdmin = @(Model.IsAdmin ? "true" : "false");
 
-    $(function() {
-        console.log("Users loaded:", users.length);
+        let createPopup;
+        let detailsPopup;
+        let editPopup;
+        let usersGrid;
+        let pendingCreateData = null;
+        let pendingDetailsData = null;
+        let pendingEditData = null;
+        let blockPopup;
+        let unblockPopup;
+        let deletePopup;
+        let pendingBlockData = null;
+        let pendingUnblockData = null;
+        let pendingDeleteData = null;
+        
 
-        createPopup = $("#createPopup").dxPopup({
-            width: 600,
-            height: "auto",
-            maxHeight: "90vh",
-            showTitle: true,
-            title: "New User",
-            showCloseButton: true,
-            contentTemplate: function() {
-                return $("<div>").attr("id", "createContent").addClass("p-3");
-            },
-            onShown: function() {
-                if (pendingCreateData) {
-                    renderCreate();
-                    pendingCreateData = null;
-                }
-            }
-        }).dxPopup("instance");
 
-        setTimeout(function() {
-            usersGrid = $("#usersGrid").dxDataGrid({
-                dataSource: users,
-                showBorders: true,
-                showRowLines: true,
-                rowAlternationEnabled: true,
-                hoverStateEnabled: true,
-                columnAutoWidth: true,
-                noDataText: "No users found",
-                filterRow: { visible: true },
-                headerFilter: { visible: true },
-                searchPanel: { visible: true, width: 240, placeholder: "Search users..." },
-                paging: { pageSize: 15 },
-                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50] },
-                export: { enabled: true, fileName: "users" },
-                columns: [
-                    { dataField: "Username", caption: "Username", width: 180 },
-                    { dataField: "Email", caption: "Email", width: 220 },
-                    {
-                        dataField: "IsActive",
-                        caption: "Status",
-                        width: 110,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const badgeClass = options.value ? "bg-success" : "bg-secondary";
-                            const text = options.value ? "Active" : "Inactive";
-                            $("<span>")
-                                .addClass("badge " + badgeClass)
-                                .text(text)
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "IsAdmin",
-                        caption: "Role",
-                        width: 110,
-                        alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const badgeClass = options.value ? "bg-warning" : "bg-secondary";
-                            const text = options.value ? "Admin" : "User";
-                            $("<span>")
-                                .addClass("badge " + badgeClass)
-                                .text(text)
-                                .appendTo(container);
-                        }
-                    },
-                    { dataField: "LicensesCount", caption: "Licenses", width: 100, alignment: "center" },
-                    { dataField: "CreatedAt", caption: "Created", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    { dataField: "LastLoginAt", caption: "Last Login", dataType: "date", format: "dd/MM/yyyy", width: 110 },
-                    {
-                        type: "buttons",
-                        width: 120,
-                        buttons: [
-                            {
-                                hint: "View Details",
-                                icon: "info",
-                                onClick: function(e) {
-                                    showUserDetailsPopup(e.row.data.Id);
-                                }
-                            },
-                            {
-                                hint: "Edit",
-                                icon: "edit",
-                                onClick: function(e) {
-                                    showUserEditPopup(e.row.data.Id);
-                                }
-                            }
-                        ]
+        $(function () {
+            console.log("Users loaded:", users.length);
+
+            createPopup = $("#createPopup").dxPopup({
+                width: 600,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "New User",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "createContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingCreateData) {
+                        renderCreate();
+                        pendingCreateData = null;
                     }
-                ],
-                onContentReady: function() {
-                    console.log("Grid rendered with " + users.length + " items");
                 }
-            }).dxDataGrid("instance");
-        }, 200);
-    });
+            }).dxPopup("instance");
 
-    function showCreatePopup() {
-        pendingCreateData = {};
-        createPopup.show();
-    }
+            detailsPopup = $("#detailsPopup").dxPopup({
+                width: 700,
+                height: "auto",
+                maxHeight: "90vh",
+                showTitle: true,
+                title: "User Details",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "detailsContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingDetailsData) {
+                        renderDetails(pendingDetailsData);
+                        pendingDetailsData = null;
+                    }
+                }
+            }).dxPopup("instance");
 
-    function renderCreate() {
-        var content = '<form id="createForm">' +
-            '<div class="row">' +
-            '<div class="col-md-6">' +
-            '<div class="mb-3">' +
-            '<label class="form-label">Username *</label>' +
-            '<input type="text" class="form-control" id="userName" placeholder="Enter username" required>' +
-            '<div class="form-text">3-50 characters, letters, numbers, dots, underscores, hyphens</div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="col-md-6">' +
-            '<div class="mb-3">' +
-            '<label class="form-label">Email *</label>' +
-            '<input type="email" class="form-control" id="userEmail" placeholder="user@example.com" required>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="row">' +
-            '<div class="col-md-6">' +
-            '<div class="mb-3">' +
-            '<label class="form-label">Password *</label>' +
-            '<input type="password" class="form-control" id="userPassword" placeholder="Enter password" required>' +
-            '<div class="form-text">Minimum 6 characters</div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="col-md-6">' +
-            '<div class="mb-3">' +
-            '<label class="form-label">Confirm Password *</label>' +
-            '<input type="password" class="form-control" id="userConfirmPassword" placeholder="Confirm password" required>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="row">' +
-            '<div class="col-md-6">' +
-            '<div class="mb-3">' +
-            '<div class="form-check">' +
-            '<input class="form-check-input" type="checkbox" id="userIsActive" checked>' +
-            '<label class="form-check-label" for="userIsActive">Active</label>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="col-md-6">' +
-            '<div class="mb-3">' +
-            '<div class="form-check">' +
-            '<input class="form-check-input" type="checkbox" id="userIsAdmin">' +
-            '<label class="form-check-label" for="userIsAdmin">Administrator</label>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '<hr>' +
-            '<div class="d-flex gap-2 mt-3">' +
-            '<button type="submit" class="btn btn-primary">' +
-            '<i class="dx-icon-plus"></i> Create User' +
-            '</button>' +
-            '<button type="button" class="btn btn-secondary" onclick="createPopup.hide()">' +
-            'Cancel' +
-            '</button>' +
-            '</div>' +
-            '</form>';
+            editPopup = $("#editPopup").dxPopup({
+                width: 600,
+                height: "auto",
+                showTitle: true,
+                title: "Edit User",
+                showCloseButton: true,
+                contentTemplate: function () {
+                    return $("<div>").attr("id", "editContent").addClass("p-3");
+                },
+                onShown: function () {
+                    if (pendingEditData) {
+                        renderEdit(pendingEditData);
+                        pendingEditData = null;
+                    }
+                }
+            }).dxPopup("instance");
 
-        $("#createContent").html(content);
+            setTimeout(function () {
+                usersGrid = $("#usersGrid").dxDataGrid({
+                    dataSource: users,
+                    height: "100%",
+                    showBorders: true,
+                    showRowLines: true,
+                    rowAlternationEnabled: true,
+                    hoverStateEnabled: true,
+                    columnAutoWidth: true,
+                    allowColumnReordering: true,
+                    allowColumnResizing: true,
+                    columnResizingMode: "widget",
+                    noDataText: "No users found",
+                    filterRow: {visible: true},
+                    headerFilter: {visible: true},
+                    searchPanel: {visible: true, width: 240, placeholder: "Search users..."},
+                    paging: {pageSize: 15},
+                    pager: {visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 15, 25, 50]},
+                    export: {enabled: true, fileName: "users"},
+                    columns: [
+                        {dataField: "Username", caption: "Username", width: 180},
+                        {dataField: "Email", caption: "Email", width: 220},
+                        {
+                            dataField: "IsActive",
+                            caption: "Status",
+                            width: 110,
+                            alignment: "center",
+                            cellTemplate: function (container, options) {
+                                const badgeClass = options.value ? "bg-success" : "bg-danger";
+                                const text = options.value ? "Active" : "Blocked";
+                                $("<span>")
+                                    .addClass("badge " + badgeClass)
+                                    .text(text)
+                                    .appendTo(container);
+                            }
+                        },
+                        {
+                            dataField: "Role",
+                            caption: "Role",
+                            width: 180,
+                            cellTemplate: function (container, options) {
+                                const role = options.value;
+                                const badges = [];
 
-        // Form validation and submission
-        $("#createForm").on("submit", function(e) {
-            e.preventDefault();
+                                if (role & 8) badges.push('<span class="badge bg-danger me-1">Admin</span>');
+                                if (role & 4) badges.push('<span class="badge bg-primary me-1">Moderator</span>');
+                                if (role & 2) badges.push('<span class="badge bg-info me-1">Viewer</span>');
+                                if (role & 1) badges.push('<span class="badge bg-secondary me-1">User</span>');
+                                if (role === 0) badges.push('<span class="badge bg-dark">None</span>');
 
-            const username = $("#userName").val().trim();
-            const email = $("#userEmail").val().trim();
-            const password = $("#userPassword").val();
-            const confirmPassword = $("#userConfirmPassword").val();
-            const isActive = $("#userIsActive").is(":checked");
-            const isAdmin = $("#userIsAdmin").is(":checked");
+                                $(container).html(badges.join(''));
+                            }
+                        },
+                        {
+                            dataField: "LicensesCount",
+                            caption: "Licenses",
+                            width: 100,
+                            alignment: "center"
+                        },
+                        {
+                            dataField: "CreatedAt",
+                            caption: "Created",
+                            dataType: "date",
+                            format: "dd/MM/yyyy",
+                            width: 110
+                        },
+                        {
+                            dataField: "LastLoginAt",
+                            caption: "Last Login",
+                            dataType: "datetime",
+                            format: "dd/MM/yyyy HH:mm",
+                            width: 150,
+                            cellTemplate: function (container, options) {
+                                const text = options.value ? new Date(options.value).toLocaleString('pl-PL') : "Never";
+                                $("<span>").text(text).appendTo(container);
+                            }
+                        },
+                        {
+                            type: "buttons",
+                            width: 150,
+                            buttons: [
+                                {
+                                    hint: "View Details",
+                                    icon: "info",
+                                    onClick: function (e) {
+                                        showDetails(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Edit User",
+                                    icon: "edit",
+                                    visible: function (e) {
+                                        return isAdmin;
+                                    },
+                                    onClick: function (e) {
+                                        showEdit(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Block User",
+                                    icon: "clear",
+                                    visible: function (e) {
+                                        return isAdmin && e.row.data.IsActive;
+                                    },
+                                    onClick: function (e) {
+                                        showBlock(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Unblock User",
+                                    icon: "check",
+                                    visible: function (e) {
+                                        return isAdmin && !e.row.data.IsActive;
+                                    },
+                                    onClick: function (e) {
+                                        showUnblock(e.row.data);
+                                    }
+                                },
+                                {
+                                    hint: "Delete User",
+                                    icon: "trash",
+                                    visible: function (e) {
+                                        return isAdmin;
+                                    },
+                                    onClick: function (e) {
+                                        showDelete(e.row.data);
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    onContentReady: function () {
+                        console.log("Grid rendered with " + users.length + " items");
+                    }
+                }).dxDataGrid("instance");
+            }, 200);
+        });
 
-            if (!username || !email || !password || !confirmPassword) {
-                DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
+
+        function showCreatePopup() {
+            if (!isAdmin) {
+                DevExpress.ui.notify("Only administrators can create users", "error", 2000);
                 return;
             }
+            pendingCreateData = {};
+            createPopup.show();
+        }
 
-            if (username.length < 3 || username.length > 50) {
-                DevExpress.ui.notify("Username must be 3-50 characters", "error", 2000);
+        function showDetails(user) {
+            pendingDetailsData = user;
+            detailsPopup.option("title", "User Details: " + user.Username);
+            detailsPopup.show();
+        }
+
+        function showEdit(user) {
+            if (!isAdmin) {
+                DevExpress.ui.notify("Only administrators can edit users", "error", 2000);
                 return;
             }
+            pendingEditData = user;
+            editPopup.option("title", "Edit User: " + user.Username);
+            editPopup.show();
+        }
 
-            if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
-                DevExpress.ui.notify("Username can only contain letters, numbers, dots, underscores and hyphens", "error", 2000);
-                return;
+
+        function renderCreate() {
+            var content = '<form id="createForm">' +
+                '<div class="row">' +
+                '<div class="col-md-6">' +
+                '<div class="mb-3">' +
+                '<label class="form-label">Username *</label>' +
+                '<input type="text" class="form-control" id="userName" placeholder="Enter username" required>' +
+                '<div class="form-text">3-50 characters, letters, numbers, dots, underscores, hyphens</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="col-md-6">' +
+                '<div class="mb-3">' +
+                '<label class="form-label">Email *</label>' +
+                '<input type="email" class="form-control" id="userEmail" placeholder="user@example.com" required>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="col-md-6">' +
+                '<div class="mb-3">' +
+                '<label class="form-label">Password *</label>' +
+                '<input type="password" class="form-control" id="userPassword" placeholder="Enter password" required>' +
+                '<div class="form-text">Minimum 6 characters</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="col-md-6">' +
+                '<div class="mb-3">' +
+                '<label class="form-label">Confirm Password *</label>' +
+                '<input type="password" class="form-control" id="userConfirmPassword" placeholder="Confirm password" required>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="col-md-12">' +
+                '<div class="mb-3">' +
+                '<label class="form-label">Permissions</label>' +
+                '<div class="border rounded p-2">' +
+                '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" id="roleUser" value="1">' +
+                '<label class="form-check-label" for="roleUser">User (can login to applications)</label>' +
+                '</div>' +
+                '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" id="roleViewer" value="2">' +
+                '<label class="form-check-label" for="roleViewer">Viewer (can view Hub read-only)</label>' +
+                '</div>' +
+                '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" id="roleModerator" value="4">' +
+                '<label class="form-check-label" for="roleModerator">Moderator (can modify Hub)</label>' +
+                '</div>' +
+                '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" id="roleAdmin" value="8">' +
+                '<label class="form-check-label" for="roleAdmin">Admin (full access)</label>' +
+                '</div>' +
+                '</div>' +
+                '<small class="text-muted">You can select multiple permissions</small>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="col-md-12">' +
+                '<div class="mb-3">' +
+                '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" id="userIsActive" checked>' +
+                '<label class="form-check-label" for="userIsActive">Active</label>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<hr>' +
+                '<div class="d-flex gap-2 mt-3 justify-content-end">' +
+                '<button type="button" class="btn btn-secondary" onclick="createPopup.hide()">' +
+                'Cancel' +
+                '</button>' +
+                '<button type="submit" class="btn btn-primary">' +
+                '<i class="dx-icon-plus"></i> Create User' +
+                '</button>' +
+                '</div>' +
+                '</form>';
+
+            $("#createContent").html(content);
+
+            $("#createForm").on("submit", function (e) {
+                e.preventDefault();
+
+                const username = $("#userName").val().trim();
+                const email = $("#userEmail").val().trim();
+                const password = $("#userPassword").val();
+                const confirmPassword = $("#userConfirmPassword").val();
+                const isActive = $("#userIsActive").is(":checked");
+
+                let role = 0;
+                if ($("#roleUser").is(":checked")) role |= 1;
+                if ($("#roleViewer").is(":checked")) role |= 2;
+                if ($("#roleModerator").is(":checked")) role |= 4;
+                if ($("#roleAdmin").is(":checked")) role |= 8;
+
+                if (!username || !email || !password || !confirmPassword) {
+                    DevExpress.ui.notify("Please fill in all required fields", "error", 2000);
+                    return;
+                }
+
+                if (username.length < 3 || username.length > 50) {
+                    DevExpress.ui.notify("Username must be 3-50 characters", "error", 2000);
+                    return;
+                }
+
+                if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+                    DevExpress.ui.notify("Username can only contain letters, numbers, dots, underscores and hyphens", "error", 2000);
+                    return;
+                }
+
+                if (password.length < 6) {
+                    DevExpress.ui.notify("Password must be at least 6 characters", "error", 2000);
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    DevExpress.ui.notify("Passwords do not match", "error", 2000);
+                    return;
+                }
+
+                if (role === 0) {
+                    DevExpress.ui.notify("Please select at least one permission", "error", 2000);
+                    return;
+                }
+
+                const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+                if (!emailRegex.test(email)) {
+                    DevExpress.ui.notify("Invalid email format", "error", 2000);
+                    return;
+                }
+
+                submitCreate({
+                    username: username,
+                    email: email,
+                    password: password,
+                    isActive: isActive,
+                    role: role
+                });
+            });
+        }
+
+        function submitCreate(data) {
+            $.ajax({
+                url: '@Url.Action("Create", "Users")',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: JSON.stringify(data),
+                success: function (result) {
+                    if (result.success) {
+                        DevExpress.ui.notify("User created successfully!", "success", 2000);
+                        createPopup.hide();
+                        location.reload();
+                    } else {
+                        DevExpress.ui.notify(result.message || "Failed to create user", "error", 3000);
+                    }
+                },
+                error: function (xhr) {
+                    const message = xhr.responseJSON?.message || "An error occurred while creating the user";
+                    DevExpress.ui.notify(message, "error", 3000);
+                }
+            });
+        }
+
+        function renderDetails(user) {
+            const createdDate = new Date(user.CreatedAt).toLocaleDateString('pl-PL');
+            const lastLoginDate = user.LastLoginAt ? new Date(user.LastLoginAt).toLocaleString('pl-PL') : "Never";
+
+            const statusBadge = user.IsActive ? "bg-success" : "bg-danger";
+            const statusText = user.IsActive ? "Active" : "Blocked";
+
+            const roleBadges = [];
+            if (user.Role & 8) roleBadges.push('<span class="badge bg-danger me-1">Admin</span>');
+            if (user.Role & 4) roleBadges.push('<span class="badge bg-primary me-1">Moderator</span>');
+            if (user.Role & 2) roleBadges.push('<span class="badge bg-info me-1">Viewer</span>');
+            if (user.Role & 1) roleBadges.push('<span class="badge bg-secondary me-1">User</span>');
+            if (user.Role === 0) roleBadges.push('<span class="badge bg-dark">None</span>');
+            const roleText = roleBadges.join('');
+
+            const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-3"><i class="dx-icon-user"></i> User Information</h6>
+                <table class="table table-sm table-borderless">
+                    <tr><th width="40%">Username:</th><td>${user.Username}</td></tr>
+                    <tr><th>Email:</th><td>${user.Email}</td></tr>
+                    <tr><th>Status:</th><td><span class="badge ${statusBadge}">${statusText}</span></td></tr>
+                    <tr><th>Permissions:</th><td>${roleText}</td></tr>
+                    <tr><th>Licenses:</th><td>${user.LicensesCount}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="mb-3"><i class="dx-icon-info"></i> Activity</h6>
+                <table class="table table-sm table-borderless">
+                    <tr><th width="40%">Created:</th><td>${createdDate}</td></tr>
+                    <tr><th>Last Login:</th><td>${lastLoginDate}</td></tr>
+                </table>
+                ${isAdmin ? `
+                <hr>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="closeDetailsAndEdit(${user.Id})">
+                        <i class="dx-icon-edit"></i> Edit User
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+
+            $("#detailsContent").html(content);
+        }
+
+        function renderEdit(user) {
+            const content = `
+        <form id="editUserForm">
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-control" value="${user.Username}" disabled>
+                <small class="text-muted">Username cannot be changed</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email *</label>
+                <input type="email" class="form-control" id="editEmail" value="${user.Email}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Permissions</label>
+                <div class="border rounded p-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editRoleUser" value="1" ${(user.Role & 1) ? 'checked' : ''}>
+                        <label class="form-check-label" for="editRoleUser">User (can login to applications)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editRoleViewer" value="2" ${(user.Role & 2) ? 'checked' : ''}>
+                        <label class="form-check-label" for="editRoleViewer">Viewer (can view Hub read-only)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editRoleModerator" value="4" ${(user.Role & 4) ? 'checked' : ''}>
+                        <label class="form-check-label" for="editRoleModerator">Moderator (can modify Hub)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editRoleAdmin" value="8" ${(user.Role & 8) ? 'checked' : ''}>
+                        <label class="form-check-label" for="editRoleAdmin">Admin (full access)</label>
+                    </div>
+                </div>
+                <small class="text-muted">You can select multiple permissions</small>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="editIsActive" ${user.IsActive ? 'checked' : ''}>
+                    <label class="form-check-label" for="editIsActive">Active</label>
+                </div>
+            </div>
+            <hr>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-secondary" onclick="editPopup.hide()">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveUser(${user.Id})">
+                    <i class="dx-icon-save"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    `;
+            $("#editContent").html(content);
+        }
+
+        function closeDetailsAndEdit(userId) {
+            detailsPopup.hide();
+            const user = users.find(u => u.Id === userId);
+            if (user) {
+                showEdit(user);
             }
+        }
 
-            if (password.length < 6) {
-                DevExpress.ui.notify("Password must be at least 6 characters", "error", 2000);
-                return;
-            }
+        function saveUser(userId) {
+            const email = $("#editEmail").val().trim();
+            const isActive = $("#editIsActive").is(":checked");
 
-            if (password !== confirmPassword) {
-                DevExpress.ui.notify("Passwords do not match", "error", 2000);
+            let role = 0;
+            if ($("#editRoleUser").is(":checked")) role |= 1;
+            if ($("#editRoleViewer").is(":checked")) role |= 2;
+            if ($("#editRoleModerator").is(":checked")) role |= 4;
+            if ($("#editRoleAdmin").is(":checked")) role |= 8;
+
+            if (!email) {
+                DevExpress.ui.notify("Email is required", "error", 2000);
                 return;
             }
 
@@ -319,37 +664,239 @@ ViewData["Title"] = Model.Title;
                 return;
             }
 
-            submitCreate({
-                username: username,
-                email: email,
-                password: password,
-                isActive: isActive,
-                isAdmin: isAdmin
+            if (role === 0) {
+                DevExpress.ui.notify("Please select at least one permission", "error", 2000);
+                return;
+            }
+
+            $.ajax({
+                url: apiBaseUrl + '/api/users/' + userId,
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: {'Authorization': 'Bearer ' + authToken},
+                data: JSON.stringify({
+                    email: email,
+                    isActive: isActive,
+                    role: role
+                }),
+                success: function (response) {
+                    DevExpress.ui.notify("User updated successfully!", "success", 2000);
+                    editPopup.hide();
+                    location.reload();
+                },
+                error: function (xhr) {
+                    console.error("Update failed:", xhr);
+                    const msg = xhr.responseJSON?.message || "Failed to update user";
+                    DevExpress.ui.notify(msg, "error", 3000);
+                }
             });
+        }
+        
+$(function() {
+        blockPopup = $("#blockPopup").dxPopup({
+            width: 500,
+            height: "auto",
+            showTitle: true,
+            title: "Block User",
+            showCloseButton: true,
+            contentTemplate: function() {
+                return $("<div>").attr("id", "blockContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingBlockData) {
+                    renderBlock(pendingBlockData);
+                    pendingBlockData = null;
+                }
+            }
+        }).dxPopup("instance");
+
+        unblockPopup = $("#unblockPopup").dxPopup({
+            width: 500,
+            height: "auto",
+            showTitle: true,
+            title: "Unblock User",
+            showCloseButton: true,
+            contentTemplate: function() {
+                return $("<div>").attr("id", "unblockContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingUnblockData) {
+                    renderUnblock(pendingUnblockData);
+                    pendingUnblockData = null;
+                }
+            }
+        }).dxPopup("instance");
+
+        deletePopup = $("#deletePopup").dxPopup({
+            width: 500,
+            height: "auto",
+            showTitle: true,
+            title: "Delete User",
+            showCloseButton: true,
+            contentTemplate: function() {
+                return $("<div>").attr("id", "deleteContent").addClass("p-3");
+            },
+            onShown: function() {
+                if (pendingDeleteData) {
+                    renderDelete(pendingDeleteData);
+                    pendingDeleteData = null;
+                }
+            }
+        }).dxPopup("instance");
+    });
+
+    function showBlock(user) {
+        pendingBlockData = user;
+        blockPopup.option("title", "Block User: " + user.Username);
+        blockPopup.show();
+    }
+
+    function showUnblock(user) {
+        pendingUnblockData = user;
+        unblockPopup.option("title", "Unblock User: " + user.Username);
+        unblockPopup.show();
+    }
+
+    function showDelete(user) {
+        pendingDeleteData = user;
+        deletePopup.option("title", "Delete User: " + user.Username);
+        deletePopup.show();
+    }
+
+    function renderBlock(user) {
+        const content = `
+        <div class="alert alert-warning">
+            <i class="dx-icon-warning"></i> <strong>Warning!</strong> This will deactivate the user account.
+        </div>
+        <p>Are you sure you want to block this user?</p>
+        <table class="table table-sm">
+            <tr><th width="40%">Username:</th><td>${user.Username}</td></tr>
+            <tr><th>Email:</th><td>${user.Email}</td></tr>
+            <tr><th>Licenses:</th><td>${user.LicensesCount}</td></tr>
+        </table>
+        <div class="d-flex gap-2 mt-3">
+            <button type="button" class="btn btn-danger" onclick="confirmBlock(${user.Id})">
+                <i class="dx-icon-clear"></i> Yes, Block User
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="blockPopup.hide()">
+                Cancel
+            </button>
+        </div>
+    `;
+        $("#blockContent").html(content);
+    }
+
+    function renderUnblock(user) {
+        const content = `
+        <div class="alert alert-info">
+            <i class="dx-icon-info"></i> <strong>Unblock User</strong><br>
+            This will reactivate the user account.
+        </div>
+        <p>Are you sure you want to unblock this user?</p>
+        <table class="table table-sm">
+            <tr><th width="40%">Username:</th><td>${user.Username}</td></tr>
+            <tr><th>Email:</th><td>${user.Email}</td></tr>
+        </table>
+        <div class="d-flex gap-2 mt-3">
+            <button type="button" class="btn btn-success" onclick="confirmUnblock(${user.Id})">
+                <i class="dx-icon-check"></i> Yes, Unblock User
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="unblockPopup.hide()">
+                Cancel
+            </button>
+        </div>
+    `;
+        $("#unblockContent").html(content);
+    }
+
+    function renderDelete(user) {
+        const content = `
+        <div class="alert alert-danger">
+            <i class="dx-icon-warning"></i> <strong>Danger!</strong> This action cannot be undone.
+        </div>
+        <p>Are you sure you want to delete this user?</p>
+        <table class="table table-sm">
+            <tr><th width="40%">Username:</th><td>${user.Username}</td></tr>
+            <tr><th>Email:</th><td>${user.Email}</td></tr>
+            <tr><th>Licenses:</th><td>${user.LicensesCount}</td></tr>
+        </table>
+        <div class="alert alert-warning mt-3">
+            <small><strong>Note:</strong> All associated licenses and devices will remain but will no longer be linked to this user.</small>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="button" class="btn btn-danger" onclick="confirmDelete(${user.Id})">
+                <i class="dx-icon-trash"></i> Yes, Delete User
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="deletePopup.hide()">
+                Cancel
+            </button>
+        </div>
+    `;
+        $("#deleteContent").html(content);
+    }
+
+    function confirmBlock(userId) {
+        $.ajax({
+            url: apiBaseUrl + '/api/users/' + userId,
+            method: 'PUT',
+            contentType: 'application/json',
+            headers: { 'Authorization': 'Bearer ' + authToken },
+            data: JSON.stringify({
+                email: users.find(u => u.Id === userId).Email,
+                isActive: false,
+                role: users.find(u => u.Id === userId).Role
+            }),
+            success: function() {
+                DevExpress.ui.notify("User blocked successfully!", "success", 2000);
+                blockPopup.hide();
+                location.reload();
+            },
+            error: function(xhr) {
+                console.error("Block failed:", xhr);
+                const msg = xhr.responseJSON?.message || "Failed to block user";
+                DevExpress.ui.notify(msg, "error", 3000);
+            }
         });
     }
 
-    function submitCreate(data) {
+    function confirmUnblock(userId) {
         $.ajax({
-            url: '@Url.Action("Create", "Users")',
-            method: 'POST',
+            url: apiBaseUrl + '/api/users/' + userId,
+            method: 'PUT',
             contentType: 'application/json',
-            headers: {
-                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-            },
-            data: JSON.stringify(data),
-            success: function(result) {
-                if (result.success) {
-                    DevExpress.ui.notify("User created successfully!", "success", 2000);
-                    createPopup.hide();
-                    location.reload();
-                } else {
-                    DevExpress.ui.notify(result.message || "Failed to create user", "error", 3000);
-                }
+            headers: { 'Authorization': 'Bearer ' + authToken },
+            data: JSON.stringify({
+                email: users.find(u => u.Id === userId).Email,
+                isActive: true,
+                role: users.find(u => u.Id === userId).Role
+            }),
+            success: function() {
+                DevExpress.ui.notify("User unblocked successfully!", "success", 2000);
+                unblockPopup.hide();
+                location.reload();
             },
             error: function(xhr) {
-                const message = xhr.responseJSON?.message || "An error occurred while creating the user";
-                DevExpress.ui.notify(message, "error", 3000);
+                console.error("Unblock failed:", xhr);
+                const msg = xhr.responseJSON?.message || "Failed to unblock user";
+                DevExpress.ui.notify(msg, "error", 3000);
+            }
+        });
+    }
+
+    function confirmDelete(userId) {
+        $.ajax({
+            url: apiBaseUrl + '/api/users/' + userId,
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + authToken },
+            success: function() {
+                DevExpress.ui.notify("User deleted successfully!", "success", 2000);
+                deletePopup.hide();
+                location.reload();
+            },
+            error: function(xhr) {
+                console.error("Delete failed:", xhr);
+                const msg = xhr.responseJSON?.message || "Failed to delete user";
+                DevExpress.ui.notify(msg, "error", 3000);
             }
         });
     }

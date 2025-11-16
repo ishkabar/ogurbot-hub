@@ -3,6 +3,8 @@
 // Namespace: Ogur.Hub.Api.Controllers
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Ogur.Hub.Application.Commands.UsersCommands;
 using Ogur.Hub.Api.Models.Requests;
 using Ogur.Hub.Api.Models.Responses;
 using Ogur.Hub.Api.Services;
@@ -102,11 +104,60 @@ public sealed class AuthController : ControllerBase
             ExpiresIn = expirationMinutes * 60,
             UserId = user.Id,
             Username = user.Username,
-            IsAdmin = user.IsAdmin
+            IsAdmin = user.IsAdmin,
+            Role = (int)user.Role,
         };
 
         _logger.LogInformation("User {Username} logged in successfully", user.Username);
 
         return Ok(ApiResponse<LoginResponse>.SuccessResponse(response));
     }
+    
+    
+    /// <summary>
+    /// Registers a new user account.
+    /// </summary>
+    /// <param name="request">Registration request.</param>
+    /// <param name="handler">Register user command handler.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Registration response.</returns>
+    [HttpPost("register")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<RegisterResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Register(
+        [FromBody] RegisterRequest request,
+        [FromServices] RegisterUserCommandHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ApiResponse<RegisterResponse>.ErrorResponse("Invalid registration data"));
+        }
+
+        var command = new RegisterUserCommand(
+            Username: request.Username,
+            Password: request.Password,
+            Email: request.Email);
+
+        var result = await handler.Handle(command, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("Registration failed for username {Username}: {Error}", request.Username, result.Error);
+            return BadRequest(ApiResponse<RegisterResponse>.ErrorResponse(result.Error!));
+        }
+
+        _logger.LogInformation("New user registered: {Username} (ID: {UserId})", request.Username, result.Value);
+
+        var response = new RegisterResponse
+        {
+            UserId = result.Value,
+            Username = request.Username,
+            Message = "Registration successful! You can now login."
+        };
+
+        return Created($"/api/users/{result.Value}", ApiResponse<RegisterResponse>.SuccessResponse(response));
+    }
+
 }

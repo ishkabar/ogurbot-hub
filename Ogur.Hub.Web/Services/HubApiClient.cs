@@ -518,7 +518,7 @@ public sealed class HubApiClient : IHubApiClient
         }
     }
 
-    
+
     public async Task<DashboardStatsDto?> GetDashboardStatsAsync(string token)
     {
         try
@@ -534,7 +534,7 @@ public sealed class HubApiClient : IHubApiClient
 
             var jsonString = await response.Content.ReadAsStringAsync();
             var jsonDoc = JsonDocument.Parse(jsonString);
-        
+
             if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement))
             {
                 return new DashboardStatsDto
@@ -544,7 +544,7 @@ public sealed class HubApiClient : IHubApiClient
                     ConnectedDevices = dataElement.GetProperty("connectedDevices").GetInt32(),
                     CommandsToday = dataElement.GetProperty("commandsToday").GetInt32(),
                     ExpiredLicenses = dataElement.GetProperty("expiredLicenses").GetInt32(),
-                    RevokedLicenses = dataElement.GetProperty("revokedLicenses").GetInt32() 
+                    RevokedLicenses = dataElement.GetProperty("revokedLicenses").GetInt32()
                 };
             }
 
@@ -553,6 +553,48 @@ public sealed class HubApiClient : IHubApiClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting dashboard stats");
+            return null;
+        }
+    }
+
+    public async Task<RegisterResponse?> RegisterAsync(string username, string password, string? email = null)
+    {
+        try
+        {
+            var request = new { username, password, email };
+            var response = await _httpClient.PostAsJsonAsync("/api/auth/register", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Registration failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
+            
+                // Parse error message from API response
+                try
+                {
+                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<object>>(errorContent);
+                    if (apiResponse?.Error != null)
+                    {
+                        // Return error as RegisterResponse with Message field
+                        return new RegisterResponse 
+                        { 
+                            UserId = 0, 
+                            Username = username, 
+                            Message = apiResponse.Error
+                        };
+                    }
+                }
+                catch { }
+            
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<RegisterResponse>>();
+            return result?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during register");
             return null;
         }
     }

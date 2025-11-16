@@ -1,5 +1,5 @@
-﻿// File: Hub.Application/Queries/Users/GetUserByIdQuery.cs
-// Project: Hub.Application
+﻿// File: Ogur.Hub.Application/Queries/Users/GetUserByIdQuery.cs
+// Project: Ogur.Hub.Application
 // Namespace: Ogur.Hub.Application.Queries.Users
 
 using Microsoft.EntityFrameworkCore;
@@ -36,28 +36,39 @@ public sealed class GetUserByIdQueryHandler
     /// </summary>
     /// <param name="query">Query to handle.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>User DTO or error if not found.</returns>
+    /// <returns>User details.</returns>
     public async Task<Result<UserDto>> Handle(GetUserByIdQuery query, CancellationToken ct)
     {
-        var user = await _context.Users
+        var userWithLicenseCount = await _context.Users
             .AsNoTracking()
             .Where(u => u.Id == query.UserId)
-            .Select(u => new UserDto(
-                u.Id,
-                u.Username,
-                u.Email,
-                u.IsActive,
-                u.IsAdmin,
-                _context.Licenses.Count(l => l.UserId == u.Id),
-                u.CreatedAt,
-                u.LastLoginAt))
+            .GroupJoin(
+                _context.Licenses,
+                user => user.Id,
+                license => license.UserId,
+                (user, licenses) => new
+                {
+                    User = user,
+                    LicenseCount = licenses.Count()
+                })
             .FirstOrDefaultAsync(ct);
 
-        if (user == null)
+        if (userWithLicenseCount == null)
         {
             return Result<UserDto>.Failure("User not found");
         }
 
-        return Result<UserDto>.Success(user);
+        var dto = new UserDto(
+            userWithLicenseCount.User.Id,
+            userWithLicenseCount.User.Username,
+            userWithLicenseCount.User.Email,
+            userWithLicenseCount.User.IsActive,
+            userWithLicenseCount.User.Role,
+            userWithLicenseCount.User.IsAdmin,
+            userWithLicenseCount.LicenseCount,
+            userWithLicenseCount.User.CreatedAt,
+            userWithLicenseCount.User.LastLoginAt);
+
+        return Result<UserDto>.Success(dto);
     }
 }

@@ -1,5 +1,5 @@
-﻿// File: Hub.Application/Queries/Users/GetUsersQuery.cs
-// Project: Hub.Application
+﻿// File: Ogur.Hub.Application/Queries/Users/GetUsersQuery.cs
+// Project: Ogur.Hub.Application
 // Namespace: Ogur.Hub.Application.Queries.Users
 
 using Microsoft.EntityFrameworkCore;
@@ -38,7 +38,6 @@ public sealed class GetUsersQueryHandler
     /// <returns>List of users.</returns>
     public async Task<Result<IReadOnlyList<UserDto>>> Handle(GetUsersQuery query, CancellationToken ct)
     {
-        // First, get users with their license counts using a simpler query
         var usersWithLicenseCounts = await _context.Users
             .AsNoTracking()
             .GroupJoin(
@@ -53,13 +52,13 @@ public sealed class GetUsersQueryHandler
             .OrderBy(x => x.User.Username)
             .ToListAsync(ct);
 
-        // Then map to DTOs in memory
         var users = usersWithLicenseCounts
             .Select(x => new UserDto(
                 x.User.Id,
                 x.User.Username,
                 x.User.Email,
                 x.User.IsActive,
+                x.User.Role,
                 x.User.IsAdmin,
                 x.LicenseCount,
                 x.User.CreatedAt,

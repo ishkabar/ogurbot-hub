@@ -5,6 +5,7 @@
 using Ogur.Hub.Application.Common.Interfaces;
 using Ogur.Hub.Application.Common.Results;
 using Ogur.Hub.Domain.Entities;
+using Ogur.Hub.Domain.Enums;
 
 namespace Ogur.Hub.Application.Commands.UsersCommands;
 
@@ -15,13 +16,13 @@ namespace Ogur.Hub.Application.Commands.UsersCommands;
 /// <param name="Email">Email address.</param>
 /// <param name="Password">Password (will be hashed).</param>
 /// <param name="IsActive">Whether user is active.</param>
-/// <param name="IsAdmin">Whether user is admin.</param>
+/// <param name="Role">User role.</param>
 public sealed record CreateUserCommand(
     string Username,
     string Email,
     string Password,
     bool IsActive,
-    bool IsAdmin);
+    UserRole Role);
 
 /// <summary>
 /// Result of creating a user.
@@ -58,7 +59,6 @@ public sealed class CreateUserCommandHandler
     /// <returns>Result with user ID.</returns>
     public async Task<Result<CreateUserResult>> Handle(CreateUserCommand command, CancellationToken ct)
     {
-        // Check if user with same username or email already exists
         var usernameExists = await _userRepository.AnyAsync(u => u.Username == command.Username, ct);
         if (usernameExists)
             return Result<CreateUserResult>.Failure($"User with username '{command.Username}' already exists");
@@ -67,20 +67,17 @@ public sealed class CreateUserCommandHandler
         if (emailExists)
             return Result<CreateUserResult>.Failure($"User with email '{command.Email}' already exists");
 
-        // Hash password before creating user
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(command.Password);
 
-        // Create user (User.Create expects: username, email, passwordHash, isAdmin)
         var user = User.Create(
             command.Username,
             command.Email,
             passwordHash,
-            command.IsAdmin);
+            command.Role);
 
-        // Handle IsActive separately if user is created as active by default
         if (!command.IsActive)
         {
-            user.Deactivate(); // Assuming you have this method
+            user.Deactivate();
         }
 
         await _userRepository.AddAsync(user, ct);

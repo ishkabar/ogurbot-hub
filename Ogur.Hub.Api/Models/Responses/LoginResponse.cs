@@ -38,4 +38,6 @@ public sealed record LoginResponse
     /// Whether the user is an administrator.
     /// </summary>
     public required bool IsAdmin { get; init; }
+    
+    public required int Role { get; set; }
 }

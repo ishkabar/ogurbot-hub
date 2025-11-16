@@ -154,4 +154,7 @@ public interface IHubApiClient
     /// <param name="request">Update request</param>
     /// <returns>Updated application</returns>
     Task<ApplicationDto?> UpdateApplicationAsync(string token, int id, UpdateApplicationRequest request);
+    
+    Task<RegisterResponse?> RegisterAsync(string username, string password, string? email = null);
+
 }

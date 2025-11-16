@@ -1,40 +1,32 @@
-﻿// File: Ogur.Hub.Application/Commands/UsersCommands/UpdateUserCommand.cs
+﻿// File: Ogur.Hub.Application/Commands/UsersCommands/DeleteUserCommand.cs
 // Project: Ogur.Hub.Application
 // Namespace: Ogur.Hub.Application.Commands.UsersCommands
 
 using Ogur.Hub.Application.Common.Interfaces;
 using Ogur.Hub.Application.Common.Results;
-using Ogur.Hub.Domain.Enums;
 
 namespace Ogur.Hub.Application.Commands.UsersCommands;
 
 /// <summary>
-/// Command to update user details.
+/// Command to delete a user.
 /// </summary>
-/// <param name="UserId">User ID.</param>
-/// <param name="Email">New email address.</param>
-/// <param name="IsActive">Is user active.</param>
-/// <param name="Role">User role.</param>
-public sealed record UpdateUserCommand(
-    int UserId,
-    string Email,
-    bool IsActive,
-    UserRole Role);
+/// <param name="UserId">User ID to delete.</param>
+public sealed record DeleteUserCommand(int UserId);
 
 /// <summary>
-/// Handler for UpdateUserCommand.
+/// Handler for DeleteUserCommand.
 /// </summary>
-public sealed class UpdateUserCommandHandler
+public sealed class DeleteUserCommandHandler
 {
     private readonly IRepository<Domain.Entities.User, int> _userRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UpdateUserCommandHandler"/> class.
+    /// Initializes a new instance of the <see cref="DeleteUserCommandHandler"/> class.
     /// </summary>
     /// <param name="userRepository">User repository.</param>
     /// <param name="unitOfWork">Unit of work.</param>
-    public UpdateUserCommandHandler(
+    public DeleteUserCommandHandler(
         IRepository<Domain.Entities.User, int> userRepository,
         IUnitOfWork unitOfWork)
     {
@@ -48,7 +40,7 @@ public sealed class UpdateUserCommandHandler
     /// <param name="command">Command to handle.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Success or failure result.</returns>
-    public async Task<Result> Handle(UpdateUserCommand command, CancellationToken ct)
+    public async Task<Result> Handle(DeleteUserCommand command, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(command.UserId, ct);
         if (user == null)
@@ -56,23 +48,7 @@ public sealed class UpdateUserCommandHandler
             return Result.Failure("User not found");
         }
 
-        user.Update(command.Email);
-
-        if (command.IsActive && !user.IsActive)
-        {
-            user.Activate();
-        }
-        else if (!command.IsActive && user.IsActive)
-        {
-            user.Deactivate();
-        }
-
-        if (command.Role != user.Role)
-        {
-            user.SetRole(command.Role);
-        }
-
-        _userRepository.Update(user);
+        _userRepository.Remove(user);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success();

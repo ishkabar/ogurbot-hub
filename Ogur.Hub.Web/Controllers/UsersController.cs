@@ -1,5 +1,5 @@
-﻿// File: Hub.Web/Controllers/UsersController.cs
-// Project: Hub.Web
+﻿// File: Ogur.Hub.Web/Controllers/UsersController.cs
+// Project: Ogur.Hub.Web
 // Namespace: Ogur.Hub.Web.Controllers
 
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +9,6 @@ using Ogur.Hub.Web.Services;
 using Ogur.Hub.Application.DTO;
 using Ogur.Hub.Api.Models.Requests;
 
-
 namespace Ogur.Hub.Web.Controllers;
 
 /// <summary>
@@ -18,16 +17,19 @@ namespace Ogur.Hub.Web.Controllers;
 public sealed class UsersController : BaseController
 {
     private readonly IHubApiClient _hubApiClient;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<UsersController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the UsersController
     /// </summary>
     /// <param name="hubApiClient">Hub API client for backend communication</param>
+    /// <param name="configuration">Configuration instance</param>
     /// <param name="logger">Logger instance</param>
-    public UsersController(IHubApiClient hubApiClient, ILogger<UsersController> logger)
+    public UsersController(IHubApiClient hubApiClient, IConfiguration configuration, ILogger<UsersController> logger)
     {
         _hubApiClient = hubApiClient;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -58,6 +60,7 @@ public sealed class UsersController : BaseController
                 Users = users
             };
             
+            ViewBag.ApiBaseUrl = _configuration["ApiSettings:BaseUrl"];
             return View(viewModel);
         }
         catch (Exception ex)
@@ -74,6 +77,7 @@ public sealed class UsersController : BaseController
                 Users = new List<UserDto>()
             };
             
+            ViewBag.ApiBaseUrl = _configuration["ApiSettings:BaseUrl"];
             return View(viewModel);
         }
     }

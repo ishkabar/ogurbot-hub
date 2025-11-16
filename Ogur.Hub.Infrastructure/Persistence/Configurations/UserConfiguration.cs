@@ -3,6 +3,7 @@
 // Namespace: Ogur.Hub.Infrastructure.Persistence.Configurations
 
 using Ogur.Hub.Domain.Entities;
+using Ogur.Hub.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -32,9 +33,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(255);
 
-        builder.Property(u => u.IsAdmin)
+        builder.Property(u => u.Role)
             .IsRequired()
-            .HasDefaultValue(false);
+            .HasConversion<int>()
+            .HasDefaultValue(UserRole.User);
 
         builder.Property(u => u.IsActive)
             .IsRequired()
@@ -59,5 +61,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasIndex(u => u.Email)
             .IsUnique();
+
+        // Ignore computed property IsAdmin (it's derived from Role)
+        builder.Ignore(u => u.IsAdmin);
     }
 }

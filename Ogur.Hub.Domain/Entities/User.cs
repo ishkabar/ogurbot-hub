@@ -3,6 +3,7 @@
 // Namespace: Ogur.Hub.Domain.Entities
 
 using Ogur.Hub.Domain.Common;
+using Ogur.Hub.Domain.Enums;
 
 namespace Ogur.Hub.Domain.Entities;
 
@@ -27,9 +28,14 @@ public sealed class User : AggregateRoot<int>
     public string PasswordHash { get; private set; }
 
     /// <summary>
-    /// Gets whether the user is an administrator.
+    /// Gets the user role.
     /// </summary>
-    public bool IsAdmin { get; private set; }
+    public UserRole Role { get; private set; }
+
+    /// <summary>
+    /// Gets whether the user is an administrator (backward compatibility helper).
+    /// </summary>
+    public bool IsAdmin => Role.HasFlag(UserRole.Admin);
 
     /// <summary>
     /// Gets whether the account is active.
@@ -53,12 +59,12 @@ public sealed class User : AggregateRoot<int>
 
     private User() { }
 
-    private User(string username, string email, string passwordHash, bool isAdmin)
+    private User(string username, string email, string passwordHash, UserRole role)
     {
         Username = username;
         Email = email;
         PasswordHash = passwordHash;
-        IsAdmin = isAdmin;
+        Role = role;
         IsActive = true;
         FailedLoginAttempts = 0;
     }
@@ -69,9 +75,9 @@ public sealed class User : AggregateRoot<int>
     /// <param name="username">Username.</param>
     /// <param name="email">Email address.</param>
     /// <param name="passwordHash">Hashed password.</param>
-    /// <param name="isAdmin">Whether user is admin.</param>
+    /// <param name="role">User role.</param>
     /// <returns>A new User instance.</returns>
-    public static User Create(string username, string email, string passwordHash, bool isAdmin = false)
+    public static User Create(string username, string email, string passwordHash, UserRole role = UserRole.User)
     {
         if (string.IsNullOrWhiteSpace(username))
             throw new ArgumentException("Username is required", nameof(username));
@@ -82,7 +88,21 @@ public sealed class User : AggregateRoot<int>
         if (string.IsNullOrWhiteSpace(passwordHash))
             throw new ArgumentException("Password hash is required", nameof(passwordHash));
 
-        return new User(username, email, passwordHash, isAdmin);
+        return new User(username, email, passwordHash, role);
+    }
+
+    /// <summary>
+    /// Creates a new user with legacy IsAdmin parameter (backward compatibility).
+    /// </summary>
+    /// <param name="username">Username.</param>
+    /// <param name="email">Email address.</param>
+    /// <param name="passwordHash">Hashed password.</param>
+    /// <param name="isAdmin">Whether user is admin.</param>
+    /// <returns>A new User instance.</returns>
+    public static User Create(string username, string email, string passwordHash, bool isAdmin)
+    {
+        var role = isAdmin ? UserRole.Admin : UserRole.User;
+        return Create(username, email, passwordHash, role);
     }
 
     /// <summary>
@@ -154,6 +174,16 @@ public sealed class User : AggregateRoot<int>
     }
 
     /// <summary>
+    /// Sets the user role.
+    /// </summary>
+    /// <param name="role">New role.</param>
+    public void SetRole(UserRole role)
+    {
+        Role = role;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
     /// Activates the user account.
     /// </summary>
     public void Activate()
@@ -167,5 +197,35 @@ public sealed class User : AggregateRoot<int>
     public void Deactivate()
     {
         IsActive = false;
+    }
+
+    /// <summary>
+    /// Checks if user has at least the specified role level.
+    /// </summary>
+    /// <param name="requiredRole">Minimum required role.</param>
+    /// <returns>True if user has required role or higher.</returns>
+    public bool HasRole(UserRole requiredRole)
+    {
+        return Role.HasFlag(requiredRole);
+    }
+
+    /// <summary>
+    /// Checks if user can access Hub (Viewer, Moderator, or Admin).
+    /// </summary>
+    /// <returns>True if user has Hub access.</returns>
+    public bool CanAccessHub()
+    {
+        return Role.HasFlag(UserRole.Viewer) || 
+               Role.HasFlag(UserRole.Moderator) || 
+               Role.HasFlag(UserRole.Admin);
+    }
+
+    /// <summary>
+    /// Checks if user can modify Hub data (Moderator or Admin).
+    /// </summary>
+    /// <returns>True if user can modify Hub.</returns>
+    public bool CanModifyHub()
+    {
+        return Role.HasFlag(UserRole.Moderator) || Role.HasFlag(UserRole.Admin);
     }
 }

@@ -1,5 +1,5 @@
-﻿// File: Hub.Api/Controllers/UsersController.cs
-// Project: Hub.Api
+﻿// File: Ogur.Hub.Api/Controllers/UsersController.cs
+// Project: Ogur.Hub.Api
 // Namespace: Ogur.Hub.Api.Controllers
 
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +9,6 @@ using Ogur.Hub.Application.Commands.UsersCommands;
 using Ogur.Hub.Application.DTO;
 using Ogur.Hub.Application.Queries.Users;
 using Ogur.Hub.Api.Models.Requests;
-
 
 namespace Ogur.Hub.Api.Controllers;
 
@@ -24,8 +23,8 @@ public sealed class UsersController : ControllerBase
     private readonly GetUsersQueryHandler _getUsersHandler;
     private readonly GetUserByIdQueryHandler _getUserByIdHandler;
     private readonly UpdateUserCommandHandler _updateUserHandler;
-    private readonly CreateUserCommandHandler _createUserHandler; // ← DODAJ
-
+    private readonly CreateUserCommandHandler _createUserHandler;
+    private readonly DeleteUserCommandHandler _deleteUserHandler;
     private readonly ILogger<UsersController> _logger;
 
     /// <summary>
@@ -34,18 +33,22 @@ public sealed class UsersController : ControllerBase
     /// <param name="getUsersHandler">Get users query handler.</param>
     /// <param name="getUserByIdHandler">Get user by ID query handler.</param>
     /// <param name="updateUserHandler">Update user command handler.</param>
+    /// <param name="createUserHandler">Create user command handler.</param>
+    /// <param name="deleteUserHandler">Delete user command handler.</param>
     /// <param name="logger">Logger instance.</param>
     public UsersController(
         GetUsersQueryHandler getUsersHandler,
         GetUserByIdQueryHandler getUserByIdHandler,
         UpdateUserCommandHandler updateUserHandler,
         CreateUserCommandHandler createUserHandler,
+        DeleteUserCommandHandler deleteUserHandler,
         ILogger<UsersController> logger)
     {
         _getUsersHandler = getUsersHandler;
         _getUserByIdHandler = getUserByIdHandler;
         _updateUserHandler = updateUserHandler;
         _createUserHandler = createUserHandler;
+        _deleteUserHandler = deleteUserHandler;
         _logger = logger;
     }
 
@@ -92,7 +95,7 @@ public sealed class UsersController : ControllerBase
             request.Email,
             request.Password,
             request.IsActive,
-            request.IsAdmin);
+            request.Role);
 
         var result = await _createUserHandler.Handle(command, ct);
 
@@ -106,7 +109,8 @@ public sealed class UsersController : ControllerBase
             request.Username,
             request.Email,
             request.IsActive,
-            request.IsAdmin,
+            request.Role,
+            request.Role == Domain.Enums.UserRole.Admin,
             0,
             DateTime.UtcNow,
             null);
@@ -114,7 +118,6 @@ public sealed class UsersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Value.UserId },
             ApiResponse<UserDto>.SuccessResponse(dto));
     }
-
 
     /// <summary>
     /// Gets user by ID.
@@ -163,7 +166,7 @@ public sealed class UsersController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Email is required"));
         }
 
-        var command = new UpdateUserCommand(id, request.Email, request.IsActive, request.IsAdmin);
+        var command = new UpdateUserCommand(id, request.Email, request.IsActive, request.Role);
         var result = await _updateUserHandler.Handle(command, ct);
 
         if (!result.IsSuccess)
@@ -172,5 +175,33 @@ public sealed class UsersController : ControllerBase
         }
 
         return Ok(ApiResponse<object>.SuccessResponse(new { message = "User updated successfully" }));
+    }
+    
+    
+    /// <summary>
+    /// Deletes a user.
+    /// </summary>
+    /// <param name="id">User ID.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Success result.</returns>
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        _logger.LogInformation("Deleting user {UserId}", id);
+
+        var command = new DeleteUserCommand(id);
+        var result = await _deleteUserHandler.Handle(command, ct);
+
+        if (!result.IsSuccess)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse(result.Error!));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { message = "User deleted successfully" }));
     }
 }

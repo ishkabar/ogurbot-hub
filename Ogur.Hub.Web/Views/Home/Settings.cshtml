@@ -24,7 +24,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Role</label>
-                    <input type="text" class="form-control" value="@(Model.IsAdmin ? "Administrator" : "User")" readonly />
+                    <input type="text" class="form-control" value="@GetRoleDisplayName(Model.IsAdmin)" readonly />
                 </div>
             </div>
         </div>
@@ -44,8 +44,8 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Language</label>
-                    <select class="form-select">
+                    <label class="form-label">Language <span class="badge bg-secondary">Coming Soon</span></label>
+                    <select class="form-select" disabled>
                         <option value="en">English</option>
                         <option value="pl">Polski</option>
                     </select>
@@ -62,23 +62,23 @@
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0"><i class="dx-icon-key"></i> Change Password</h5>
+                <h5 class="mb-0"><i class="dx-icon-key"></i> Change Password <span class="badge bg-secondary">Coming Soon</span></h5>
             </div>
             <div class="card-body">
                 <form id="changePasswordForm">
                     <div class="mb-3">
                         <label class="form-label">Current Password</label>
-                        <input type="password" class="form-control" id="currentPassword" />
+                        <input type="password" class="form-control" id="currentPassword" disabled />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">New Password</label>
-                        <input type="password" class="form-control" id="newPassword" />
+                        <input type="password" class="form-control" id="newPassword" disabled />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Confirm New Password</label>
-                        <input type="password" class="form-control" id="confirmPassword" />
+                        <input type="password" class="form-control" id="confirmPassword" disabled />
                     </div>
-                    <button type="button" class="btn btn-primary" onclick="changePassword()">
+                    <button type="button" class="btn btn-primary" disabled>
                         <i class="dx-icon-check"></i> Change Password
                     </button>
                 </form>
@@ -113,6 +113,83 @@
     </div>
 </div>
 
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="dx-icon-grid"></i> Grid Preferences <span class="badge bg-secondary">Coming Soon</span></h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Default Page Size</label>
+                            <select class="form-select" id="defaultPageSize" disabled>
+                                <option value="10">10 rows</option>
+                                <option value="15" selected>15 rows</option>
+                                <option value="25">25 rows</option>
+                                <option value="50">50 rows</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Default Sort Order</label>
+                            <select class="form-select" id="defaultSortOrder" disabled>
+                                <option value="asc">Ascending</option>
+                                <option value="desc" selected>Descending</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Show Filter Row</label>
+                            <select class="form-select" id="showFilterRow" disabled>
+                                <option value="true" selected>Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Show Search Panel</label>
+                            <select class="form-select" id="showSearchPanel" disabled>
+                                <option value="true" selected>Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-info mb-0">
+                    <i class="dx-icon-info"></i> Grid preferences will be saved per user and applied automatically to all data grids.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetRoleDisplayName(bool isAdmin)
+    {
+        // Get role from session
+        var roleStr = Context.Session.GetString("Role");
+        if (string.IsNullOrEmpty(roleStr))
+        {
+            return isAdmin ? "Administrator" : "User";
+        }
+
+        if (!int.TryParse(roleStr, out int role))
+        {
+            return isAdmin ? "Administrator" : "User";
+        }
+
+        var roles = new List<string>();
+        if ((role & 8) != 0) roles.Add("Admin");
+        if ((role & 4) != 0) roles.Add("Moderator");
+        if ((role & 2) != 0) roles.Add("Viewer");
+        if ((role & 1) != 0) roles.Add("User");
+        
+        if (roles.Count == 0) return "No permissions";
+        return string.Join(", ", roles);
+    }
+}
+
 @section Scripts {
     <script>
         $(function() {
@@ -136,26 +213,8 @@
                 document.documentElement.classList.remove('dark-mode');
             }
             
-            DevExpress.ui.notify("Preferences saved successfully!", "success", 2000);
+            DevExpress.ui.notify("Theme saved successfully!", "success", 2000);
         }
 
-        function changePassword() {
-            const current = $('#currentPassword').val();
-            const newPass = $('#newPassword').val();
-            const confirm = $('#confirmPassword').val();
-            
-            if (!current || !newPass || !confirm) {
-                DevExpress.ui.notify("Please fill all fields", "error", 2000);
-                return;
-            }
-            
-            if (newPass !== confirm) {
-                DevExpress.ui.notify("Passwords do not match", "error", 2000);
-                return;
-            }
-            
-            // TODO: Implement password change API call
-            DevExpress.ui.notify("Password change not yet implemented", "info", 2000);
-        }
     </script>
 }

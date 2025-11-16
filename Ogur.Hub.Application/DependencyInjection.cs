@@ -18,6 +18,7 @@ using Ogur.Hub.Application.Queries.Users;
 
 namespace Ogur.Hub.Application;
 
+
 /// <summary>
 /// Dependency injection configuration for Application layer.
 /// </summary>
@@ -44,8 +45,7 @@ public static class DependencyInjection
         services.AddScoped<CheckForUpdatesQueryHandler>();
         services.AddScoped<GetUsersQueryHandler>();
         services.AddScoped<GetUserByIdQueryHandler>();
-        services.AddScoped<CreateUserCommandHandler>();
-        
+        services.AddScoped<RegisterUserCommandHandler>();
 
         // Register Command Handlers
         services.AddScoped<CreateApplicationCommandHandler>();
@@ -53,15 +53,16 @@ public static class DependencyInjection
         services.AddScoped<BlockDeviceCommandHandler>();
         services.AddScoped<UnblockDeviceCommandHandler>();
         services.AddScoped<SendDeviceCommandCommandHandler>();
+        services.AddScoped<UpdateDeviceCommandHandler>();
+        services.AddScoped<AssignUserToDeviceCommandHandler>();
+        services.AddScoped<RemoveUserFromDeviceCommandHandler>();
         services.AddScoped<CreateLicenseCommandHandler>();
         services.AddScoped<RevokeLicenseCommandHandler>();
         services.AddScoped<ValidateLicenseCommandHandler>();
         services.AddScoped<ReceiveTelemetryCommandHandler>();
         services.AddScoped<CreateUserCommandHandler>();
         services.AddScoped<UpdateUserCommandHandler>();
-        services.AddScoped<UpdateDeviceCommandHandler>();
-        services.AddScoped<AssignUserToDeviceCommandHandler>();
-        services.AddScoped<RemoveUserFromDeviceCommandHandler>();
+        services.AddScoped<DeleteUserCommandHandler>();
 
         return services;
     }
