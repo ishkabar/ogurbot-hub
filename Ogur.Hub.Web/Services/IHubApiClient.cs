@@ -155,6 +155,12 @@ public interface IHubApiClient
     /// <returns>Updated application</returns>
     Task<ApplicationDto?> UpdateApplicationAsync(string token, int id, UpdateApplicationRequest request);
     
+    /// <summary>
+    /// Registers user
+    /// </summary>
+    /// <param name="username">Username</param>
+    /// <param name="password">Password</param>
+    /// <param name="email">Optional Email adress</param>
+    /// <returns>Register response</returns>
     Task<RegisterResponse?> RegisterAsync(string username, string password, string? email = null);
-
 }

@@ -665,7 +665,7 @@
             console.log("Loading applications and users...");
 
             $.ajax({
-                url: '/api/applications',
+                url: apiBaseUrl + '/api/applications',
                 method: 'GET',
                 headers: {'Authorization': 'Bearer ' + authToken}
             })
@@ -681,7 +681,7 @@
                 });
 
             $.ajax({
-                url: '/api/users',
+                url: apiBaseUrl + '/api/users',
                 method: 'GET',
                 headers: {'Authorization': 'Bearer ' + authToken}
             })

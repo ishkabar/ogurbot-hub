@@ -315,17 +315,18 @@
 
         function deleteApplication(appId) {
             $.ajax({
-                url: '/api/applications/' + appId,
+                url: apiBaseUrl + '/api/applications/' + appId,
                 method: 'DELETE',
-                headers: {'Authorization': 'Bearer ' + authToken},
-                success: function () {
+                headers: { 'Authorization': 'Bearer ' + authToken },
+                success: function() {
                     DevExpress.ui.notify("Application deleted successfully!", "success", 2000);
                     editPopup.hide();
-                    location.reload();
+                    applicationsGrid.refresh();
                 },
-                error: function (xhr) {
+                error: function(xhr) {
                     console.error("Delete failed:", xhr);
-                    DevExpress.ui.notify("Failed to delete application", "error", 3000);
+                    const msg = xhr.responseJSON?.message || "Failed to delete application";
+                    DevExpress.ui.notify(msg, "error", 3000);
                 }
             });
         }
