@@ -119,6 +119,7 @@
 @section Scripts {
     <script>
         const authToken = '@Context.Session.GetString("AuthToken")';
+        const apiBaseUrl = '@ViewBag.ApiBaseUrl';
         let createPopup;
         let detailsPopup;
         let editPopup;
