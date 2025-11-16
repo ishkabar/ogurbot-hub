@@ -322,7 +322,7 @@
                 success: function() {
                     DevExpress.ui.notify("Application deleted successfully!", "success", 2000);
                     editPopup.hide();
-                    applicationsGrid.refresh();
+                    location.reload();
                 },
                 error: function(xhr) {
                     console.error("Delete failed:", xhr);
