@@ -12,12 +12,6 @@ namespace Ogur.Hub.Api.Models.Requests;
 public sealed record ValidateLicenseRequest
 {
     /// <summary>
-    /// License key to validate.
-    /// </summary>
-    [Required]
-    public required string LicenseKey { get; init; }
-
-    /// <summary>
     /// Hardware identifier of the device.
     /// </summary>
     [Required]
