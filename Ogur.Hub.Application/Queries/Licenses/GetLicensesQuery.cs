@@ -74,3 +74,57 @@ public sealed class GetLicensesQueryHandler : IRequestHandler<GetLicensesQuery, 
         return licenses;
     }
 }
+
+/// <summary>
+/// Query to get active license for user and application.
+/// </summary>
+/// <param name="UserId">User identifier.</param>
+/// <param name="ApplicationId">Application identifier.</param>
+public sealed record GetUserLicenseQuery(int UserId, int ApplicationId) : IRequest<LicenseDto?>;
+
+/// <summary>
+/// Handler for getting user's active license.
+/// </summary>
+public sealed class GetUserLicenseQueryHandler : IRequestHandler<GetUserLicenseQuery, LicenseDto?>
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetUserLicenseQueryHandler(IApplicationDbContext context)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    public async Task<LicenseDto?> Handle(GetUserLicenseQuery request, CancellationToken cancellationToken)
+    {
+        var license = await _context.Licenses
+            .Include(l => l.Application)
+            .Include(l => l.Devices)
+            .Where(l => l.UserId == request.UserId
+                        && l.ApplicationId == request.ApplicationId
+                        && l.Status == LicenseStatus.Active
+                        && (l.EndDate == null || l.EndDate > DateTime.UtcNow))
+            .OrderByDescending(l => l.StartDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (license is null)
+            return null;
+
+        return new LicenseDto(
+            license.Id,
+            license.LicenseKey.Value,
+            license.ApplicationId,
+            license.Application.DisplayName,
+            license.UserId,
+            license.MaxDevices,
+            license.Devices.Count,
+            license.Status,
+            license.StartDate,
+            license.EndDate,
+            license.Status == LicenseStatus.Revoked ? license.UpdatedAt : null,
+            null,
+            null,
+            0,
+            license.Description
+        );
+    }
+}
